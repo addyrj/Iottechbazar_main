@@ -29,6 +29,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import axios from "axios";
 import Rating from "@mui/material/Rating";
 import StarIcon from "@mui/icons-material/Star";
+import { useNavigate } from "react-router-dom";
 
 // Import Swiper styles
 import "swiper/css";
@@ -78,6 +79,7 @@ const ProductDetail = () => {
 
     const ratingReview = useSelector((state) => state.DashboardReducer.ratingReview)
     const averageRating = useSelector((state) => state.DashboardReducer.averageRating)
+        const navigate = useNavigate();
 
     const {
         primaryImage,
@@ -174,6 +176,37 @@ const ProductDetail = () => {
         },
     ];
     const handleClose = () => dispatch(openImageModal(false));
+
+     const handleBuyNow = () => {
+        if (isEmpty(id.toString()) || isEmpty(slug)) {
+            toast.error("Failed! Product not found");
+            return;
+        }
+
+        if (count < 1) {
+            toast.error("Failed! Please select at least 1 quantity");
+            return;
+        }
+
+        // Create buy now item object
+        const buyNowItem = {
+            productId: id,
+            productSlug: slug,
+            cartProductName: name,
+            cartImage: primaryImage,
+            cartSellPrice: productSpecialPrice,
+            basePrice: productSpecialPrice,
+            cartCount: count,
+            cartItemtotalSellPrice: productSpecialPrice * count
+        };
+
+        navigate("/checkout", {
+            state: {
+                buyNowMode: true,
+                buyNowItem: buyNowItem
+            }
+        });
+    };
 
     const addCart = (id, slug, count) => {
         if (isEmpty(id.toString()) || isEmpty(slug)) {
@@ -458,19 +491,19 @@ const ProductDetail = () => {
                                             {/* End .details-action-col */}
                                             <div className="details-action-wrapper">
                                                 <a
-                                                    className="btn-product btn-wishlist"
+                                                    className="btn-product btn-wishlist mr-4"
                                                     title="Wishlist"
                                                     onClick={() => addWishList(id, slug)}
                                                 >
-                                                    <span>Add to Wishlist</span>
+                                                    <span>Add Wishlist</span>
                                                 </a>
-                                                <a
-                                                    href="#"
-                                                    className="btn-product btn-compare"
-                                                    title="Compare"
+                                                 <button
+                                                    className="buttonStyle"
+                                                    onClick={handleBuyNow}
                                                 >
-                                                    <span>Add to Compare</span>
-                                                </a>
+                                                    <i className="fa fa-bag-shopping mr-2"></i>
+                                                    <span>Buy Now</span>
+                                                </button>
                                             </div>
                                             {/* End .details-action-wrapper */}
                                         </div>
@@ -482,39 +515,52 @@ const ProductDetail = () => {
                                             </div>
 
                                             {/* End .product-cat */}
-                                            <div className="social-icons social-icons-sm">
-                                                <span className="social-label">Share:</span>
+                                          <div className="social-icons social-icons-sm">
+                                                <span
+                                                    className="social-label"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(window.location.href);
+                                                        toast.success('Product link copied to clipboard!');
+                                                    }}
+                                                >
+                                                    Share:
+                                                </span>
                                                 <a
-                                                    href="#"
+                                                    href={`https://wa.me/?text=${encodeURIComponent(name + ' - ' + window.location.href)}`}
+                                                    className="social-icon"
+                                                    title="WhatsApp"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <i className="icon-whatsapp" />
+                                                </a>
+                                                <a
+                                                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
                                                     className="social-icon"
                                                     title="Facebook"
                                                     target="_blank"
+                                                    rel="noopener noreferrer"
                                                 >
                                                     <i className="icon-facebook-f" />
                                                 </a>
                                                 <a
-                                                    href="#"
+                                                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(name)}`}
                                                     className="social-icon"
                                                     title="Twitter"
                                                     target="_blank"
+                                                    rel="noopener noreferrer"
                                                 >
                                                     <i className="icon-twitter" />
                                                 </a>
                                                 <a
-                                                    href="#"
+                                                    href={`https://www.instagram.com/?url=${encodeURIComponent(window.location.href)}`}
                                                     className="social-icon"
                                                     title="Instagram"
                                                     target="_blank"
+                                                    rel="noopener noreferrer"
                                                 >
                                                     <i className="icon-instagram" />
-                                                </a>
-                                                <a
-                                                    href="#"
-                                                    className="social-icon"
-                                                    title="Pinterest"
-                                                    target="_blank"
-                                                >
-                                                    <i className="icon-pinterest" />
                                                 </a>
                                             </div>
                                         </div>

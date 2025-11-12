@@ -266,10 +266,13 @@ const Header = () => {
                                         <NavLink to="/cart" className="btn btn-primary">
                                             View Cart
                                         </NavLink>
-                                        <a href="checkout.html" className="btn btn-outline-primary-2">
-                                            <span>Checkout</span>
-                                            <i className="icon-long-arrow-right" />
-                                        </a>
+                                       <NavLink
+                      to="/checkout"
+                      className="btn btn-outline-primary-2"
+                    >
+                      <span>Checkout</span>
+                      <i className="icon-long-arrow-right" />
+                    </NavLink>
                                     </div>
                                     {/* End .dropdown-cart-total */}
                                 </div>

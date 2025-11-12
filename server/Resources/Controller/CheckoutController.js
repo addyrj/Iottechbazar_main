@@ -16,8 +16,17 @@ const OrderDetail = db.orderDetail;
 
 const generateOrder = async (req, res, next) => {
     try {
-        const { amount, paymentMode } = req.body;
+        const { amount, paymentMode, selectedAddressId, buyNowMode, buyNowItem } = req.body;
         const user = req.user;
+        
+        // Convert buyNowMode to boolean for consistent checks
+        const isBuyNowMode = buyNowMode === true || 
+                             buyNowMode === "true" || 
+                             buyNowMode === 1 || 
+                             buyNowMode === "1";
+        
+        console.log("Generate Order - Buy Now Mode:", isBuyNowMode);
+        
         if (isEmpty(amount)) {
             res.status(300).send({
                 status: 300,
@@ -29,25 +38,71 @@ const generateOrder = async (req, res, next) => {
                 message: "Failed! You have not authorized"
             })
         } else {
+            // Check if user has any address at all
+            const checkAnyAddress = await Address.findOne({ where: { userId: user.userId } });
+            if (!checkAnyAddress) {
+                return res.status(400).json({
+                    status: 400,
+                    message: "Failed! Address is not found"
+                })
+            }
+
             let instance = new Razorpay({
                 key_id: process.env.RAZOR_PAY_KEY_ID,
                 key_secret: process.env.RAZOR_PAY_KEY_SECRET,
             });
 
-            const checkAddress = await Address.findOne({ where: { userId: user.userId, defautAddress: "true" } });
-            console.log
+            // Check for selected address OR default address
+            let checkAddress;
+            if (selectedAddressId) {
+                checkAddress = await Address.findOne({ 
+                    where: { 
+                        userId: user.userId, 
+                        id: selectedAddressId 
+                    } 
+                });
+            } else {
+                checkAddress = await Address.findOne({ 
+                    where: { 
+                        userId: user.userId, 
+                        defautAddress: "true" 
+                    } 
+                });
+            }
+
             if (checkAddress) {
-                const checkCart = await Cart.findAll({ where: { userSlug: user.slug } });
+                // Handle Buy Now Mode or Regular Cart
+                let checkCart;
+                if (isBuyNowMode && buyNowItem) {
+                    // Create temporary cart array with single buy now item
+                    checkCart = [buyNowItem];
+                    console.log("Using buy now item:", buyNowItem);
+                } else {
+                    // Use regular cart
+                    checkCart = await Cart.findAll({ where: { userSlug: user.slug } });
+                    console.log("Using regular cart, items count:", checkCart.length);
+                }
+
                 const checkProduct = await Product.findAll();
+                
                 if (checkCart.length !== 0) {
                     const orderCount = await Order.findAll();
                     const settingInfo = await Setting.findAll();
 
-
-                    const totalBasePrice = await getTotalBasePrice(checkCart, checkProduct);
-                    const totalTaxes = await getGstTax(checkCart, checkProduct);
-
-                    const totalAmount = await getTotalSellPrice(checkCart, checkProduct);
+                    // Calculate prices based on cart items
+                    let totalBasePrice, totalTaxes, totalAmount;
+                    
+                    if (isBuyNowMode && buyNowItem) {
+                        // Calculate for single buy now item
+                        totalBasePrice = parseInt(buyNowItem.basePrice || buyNowItem.cartSellPrice);
+                        totalAmount = parseInt(buyNowItem.cartItemtotalSellPrice);
+                        totalTaxes = totalAmount - totalBasePrice;
+                    } else {
+                        // Calculate for regular cart
+                        totalBasePrice = await getTotalBasePrice(checkCart, checkProduct);
+                        totalTaxes = await getGstTax(checkCart, checkProduct);
+                        totalAmount = await getTotalSellPrice(checkCart, checkProduct);
+                    }
 
                     const option = {
                         amount: parseInt(amount) * 100,
@@ -96,70 +151,98 @@ const generateOrder = async (req, res, next) => {
                         const createOrder = await Order.create(info);
                         if (createOrder) {
                             const productList = await Product.findAll();
+                            
+                            // Create order details
                             const createOrderDetail = checkCart?.map((item, index) => {
-                                const checkProduct = productList.filter((currElem) => { return currElem.slug === item.productSlug })
-                                if (checkProduct.length !== 0) {
-                                    const info = {
-                                        orderNumber: generateNewOrder.id,
-                                        productId: checkProduct[0]?.id,
-                                        productName: checkProduct[0]?.name,
-                                        price: checkProduct[0]?.productPrice,
-                                        specialPrice: checkProduct[0]?.productSpecialPrice,
-                                        productCount: item.cartCount,
-                                        productTotalPrice: parseInt(item.cartCount) * parseInt(checkProduct[0].productSpecialPrice)
+                                let productInfo;
+                                
+                                if (isBuyNowMode && buyNowItem) {
+                                    // For buy now, use buyNowItem data
+                                    const checkProduct = productList.filter((currElem) => 
+                                        currElem.id === item.productId || currElem.slug === item.productSlug
+                                    );
+                                    
+                                    if (checkProduct.length !== 0) {
+                                        productInfo = {
+                                            orderNumber: generateNewOrder.id,
+                                            productId: item.productId,
+                                            productName: item.cartProductName,
+                                            price: item.cartSellPrice,
+                                            specialPrice: item.cartSellPrice,
+                                            productCount: item.cartCount,
+                                            productTotalPrice: item.cartItemtotalSellPrice
+                                        };
                                     }
-                                    return OrderDetail.create(info);
                                 } else {
-                                    res.status(400).json({
-                                        status: 400,
-                                        message: "No Product Found"
-                                    })
+                                    // For regular cart
+                                    const checkProduct = productList.filter((currElem) => 
+                                        currElem.slug === item.productSlug
+                                    );
+                                    
+                                    if (checkProduct.length !== 0) {
+                                        productInfo = {
+                                            orderNumber: generateNewOrder.id,
+                                            productId: checkProduct[0]?.id,
+                                            productName: checkProduct[0]?.name,
+                                            price: checkProduct[0]?.productPrice,
+                                            specialPrice: checkProduct[0]?.productSpecialPrice,
+                                            productCount: item.cartCount,
+                                            productTotalPrice: parseInt(item.cartCount) * parseInt(checkProduct[0].productSpecialPrice)
+                                        };
+                                    }
                                 }
+                                
+                                return productInfo ? OrderDetail.create(productInfo) : null;
                             });
-                            if (paymentMode === "0") {
+                            
+                            // Clear cart only if COD payment AND NOT buy now mode
+                            if (paymentMode === "0" && !isBuyNowMode) {
                                 await Cart.destroy({ where: { userSlug: user.slug } });
-
+                                console.log("Cart cleared after COD order");
+                            } else {
+                                console.log("Cart not cleared - either online payment or buy now mode");
                             }
-                            await Promise.all(createOrderDetail).then((result) => {
-                                res.status(200).json({
-                                    status: 200,
-                                    message: "Order Created Successfully",
-                                    info: generateNewOrder
+                            
+                            await Promise.all(createOrderDetail.filter(item => item !== null))
+                                .then((result) => {
+                                    res.status(200).json({
+                                        status: 200,
+                                        message: "Order Created Successfully",
+                                        info: generateNewOrder
+                                    })
                                 })
-                            }).catch((error) => {
-                                res.status(300).json({
-                                    status: 300,
-                                    message: "Faild!Order is not created",
-                                    info: error
+                                .catch((error) => {
+                                    res.status(300).json({
+                                        status: 300,
+                                        message: "Failed! Order is not created",
+                                        info: error
+                                    })
                                 })
-                            })
                         } else {
                             res.status(300).send({
                                 status: 300,
                                 message: "Failed! Order not created"
                             })
                         }
-
                     } else {
                         return res.status(300).send({
                             status: 300,
-                            message: "Failed! Order unsuccessfull",
+                            message: "Failed! Order unsuccessful",
                         })
                     }
                 } else {
                     return res.status(400).json({
                         status: 400,
-                        message: "Failed! Product not found, Please add item to cart to purchae"
+                        message: "Failed! Product not found, Please add item to cart to purchase"
                     })
                 }
             } else {
                 return res.status(400).json({
                     status: 400,
-                    message: "Failed! Address is not found"
+                    message: "Failed! No address found. Please select an address."
                 })
             }
         }
-
     } catch (error) {
         return res.status(500).json({
             status: 500,
@@ -236,11 +319,13 @@ const getAdminOrder = async (req, res, next) => {
     next();
 }
 
+// Backend controller update for verifyPayment
 const verifyPayemnt = async (req, res, next) => {
     try {
-        const { orderId, paymentId, rPaySignature } = req.body;
-        const errorNullResponse = await ErrorNullResponse(req.body)
+        const { orderId, paymentId, rPaySignature, buyNowMode } = req.body;
+        const errorNullResponse = await ErrorNullResponse({orderId, paymentId, rPaySignature});
         const user = req.user;
+        
         if (!user) {
             res.status(300).send({
                 status: 300,
@@ -263,28 +348,41 @@ const verifyPayemnt = async (req, res, next) => {
                     transactionStatus: "Success",
                     amountDue: ""
                 }
-                const removeCart = await Cart.destroy({ where: { userSlug: user.slug } });
+                
+                // FIXED: Proper check for buy now mode
+                // Convert to string for comparison or check for truthy values
+                const isBuyNowMode = buyNowMode === true || 
+                                     buyNowMode === "true" || 
+                                     buyNowMode === 1 || 
+                                     buyNowMode === "1";
+                
+                // Only clear cart if NOT in buy now mode
+                if (!isBuyNowMode) {
+                    await Cart.destroy({ where: { userSlug: user.slug } });
+                    console.log("Cart cleared after payment verification");
+                } else {
+                    console.log("Buy now mode - cart not cleared");
+                }
 
                 await Order.update(info, { where: { orderNumber: orderId } })
                     .then((result) => {
                         res.status(200).json({
                             status: 200,
-                            message: "Payment Successfull",
+                            message: "Payment Successful",
                             info: result
-
                         })
                     })
                     .catch((error) => {
                         res.status(300).json({
                             status: 300,
-                            message: "Faild! Something Went Wrong",
+                            message: "Failed! Something Went Wrong",
                             info: error
                         })
                     })
             } else {
                 res.status(300).json({
                     status: 300,
-                    message: "Payment not get in"
+                    message: "Payment verification failed"
                 })
             }
         }

@@ -170,18 +170,19 @@ const Footer = () => {
                                     </ul>
                                     {/* End .widget-list */}
                                     <div className="social-icons mt-2">
-                                        {appSocialLink.map((item, index) => {
-                                            return (
-                                                <a
-                                                    href={item.url}
-                                                    className="social-icon"
-                                                    title={item.name}
-                                                    target="_blank"
-                                                >
-                                                    <i className={item.icon} />
-                                                </a>
-                                            )
-                                        })}
+                                        {appSocialLink.map((item, index) => (
+                                            <a
+                                                key={item.id || index}
+                                                href={item.url}
+                                                className="social-icon"
+                                                title={item.name}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <i className={item.icon} />
+                                            </a>
+                                        ))}
+
                                     </div>
                                     {/* End .soial-icons */}
                                 </div>
@@ -193,13 +194,12 @@ const Footer = () => {
                                     <h4 className="widget-title">Useful Links</h4>
                                     {/* End .widget-title */}
                                     <ul>
-                                        {legalPageList?.map((item, index) => {
-                                            return (
-                                                <li>
-                                                    <NavLink to={`/legalpage/${item.url}`}>{item.title}</NavLink>
-                                                </li>
-                                            )
-                                        })}
+                                       {legalPageList?.map((item, index) => (
+    <li key={item.id || index}>
+        <NavLink to={`/legalpage/${item.url}`}>{item.title}</NavLink>
+    </li>
+))}
+
                                     </ul>
                                     {/* End .widget-list */}
                                 </div>
@@ -212,7 +212,19 @@ const Footer = () => {
                                     {/* End .widget-title */}
                                     <ul className="widget-list">
                                         <li>
-                                            <NavLink to={"/contact"}>Contact Us</NavLink>
+                                            <NavLink to={"/contact"}
+                                                onClick={() => {
+                                                    // Wait for the navigation to complete
+                                                    setTimeout(() => {
+                                                        const scrollHeight = document.documentElement.scrollHeight;
+                                                        const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                        window.scrollTo({
+                                                            top: centerPosition > 0 ? centerPosition : 0,
+                                                            behavior: "smooth",
+                                                        });
+                                                    }, 300); // small delay ensures route change + DOM update
+                                                }}>Contact Us</NavLink>
                                         </li>
                                         <li>
                                             <a href="#">Returns</a>
@@ -229,30 +241,92 @@ const Footer = () => {
                                 {/* End .widget */}
                             </div>
                             {/* End .col-sm-6 col-lg-3 */}
+
                             <div className="col-sm-6 col-lg-3">
                                 <div className="widget">
                                     <h4 className="widget-title">My Account</h4>
-                                    {/* End .widget-title */}
                                     <ul className="widget-list">
                                         <li>
-                                            <a href="#">Sign In</a>
+                                            <NavLink to="/register"
+                                                onClick={() => {
+                                                    // Wait for the navigation to complete
+                                                    setTimeout(() => {
+                                                        const scrollHeight = document.documentElement.scrollHeight;
+                                                        const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                        window.scrollTo({
+                                                            top: centerPosition > 0 ? centerPosition : 0,
+                                                            behavior: "smooth",
+                                                        });
+                                                    }, 300); // small delay ensures route change + DOM update
+                                                }}
+                                            >Sign In / Register</NavLink>
+                                        </li>
+                                        <NavLink
+                                            to="/cart"
+                                            onClick={() => {
+                                                // Wait for the navigation to complete
+                                                setTimeout(() => {
+                                                    const scrollHeight = document.documentElement.scrollHeight;
+                                                    const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                    window.scrollTo({
+                                                        top: centerPosition > 0 ? centerPosition : 0,
+                                                        behavior: "smooth",
+                                                    });
+                                                }, 300); // small delay ensures route change + DOM update
+                                            }}
+                                        >
+                                            View Cart
+                                        </NavLink>
+
+                                        <li>
+                                            <NavLink to="/wishlist"
+                                                onClick={() => {
+                                                    // Wait for the navigation to complete
+                                                    setTimeout(() => {
+                                                        const scrollHeight = document.documentElement.scrollHeight;
+                                                        const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                        window.scrollTo({
+                                                            top: centerPosition > 0 ? centerPosition : 0,
+                                                            behavior: "smooth",
+                                                        });
+                                                    }, 300); // small delay ensures route change + DOM update
+                                                }}>My Wishlist</NavLink>
                                         </li>
                                         <li>
-                                            <a href="cart.html">View Cart</a>
+                                            <NavLink to="/profile"
+                                                onClick={() => {
+                                                    // Wait for the navigation to complete
+                                                    setTimeout(() => {
+                                                        const scrollHeight = document.documentElement.scrollHeight;
+                                                        const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                        window.scrollTo({
+                                                            top: centerPosition > 0 ? centerPosition : 0,
+                                                            behavior: "smooth",
+                                                        });
+                                                    }, 300); // small delay ensures route change + DOM update
+                                                }}>Track My Order</NavLink>
                                         </li>
                                         <li>
-                                            <a href="#">My Wishlist</a>
-                                        </li>
-                                        <li>
-                                            <a href="#">Track My Order</a>
-                                        </li>
-                                        <li>
-                                            <a href="#">Help</a>
+                                            <NavLink to="/contact"
+                                                onClick={() => {
+                                                    // Wait for the navigation to complete
+                                                    setTimeout(() => {
+                                                        const scrollHeight = document.documentElement.scrollHeight;
+                                                        const centerPosition = (scrollHeight - window.innerHeight) / 2;
+
+                                                        window.scrollTo({
+                                                            top: centerPosition > 0 ? centerPosition : 0,
+                                                            behavior: "smooth",
+                                                        });
+                                                    }, 300); // small delay ensures route change + DOM update
+                                                }}>Help</NavLink>
                                         </li>
                                     </ul>
-                                    {/* End .widget-list */}
                                 </div>
-                                {/* End .widget */}
                             </div>
                             {/* End .col-sm-6 col-lg-3 */}
                         </div>
@@ -264,7 +338,7 @@ const Footer = () => {
                 <div className="footer-bottom">
                     <div className="container">
                         <p className="footer-copyright">
-                            Owned By IOTtech Smart Products © 2022
+                            Owned By IOTtech Smart Products © 2025
                         </p>
                         {/* End .footer-copyright */}
                         <figure className="footer-payments">
@@ -289,7 +363,8 @@ const Footer = () => {
 
 const Wrapper = styled.section`
 .footer-dark{
-background-color: #1E1E1E;
+// background-color: #1E1E1E;
+background-color: #1e2838;
 }
 
 li a {
