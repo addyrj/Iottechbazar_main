@@ -147,6 +147,180 @@ const addSecondaryImages = async (req, res, next) => {
     }
     next();
 }
+const uploadMultipleImageVideo = async (req, res, next) => {
+  try {
+    const { slug } = req.body;
+
+    if (isEmpty(slug)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Product slug is required"
+      });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "No files uploaded"
+      });
+    }
+
+    const product = await Product.findOne({ where: { slug } });
+    if (!product) {
+      return res.status(404).json({
+        status: 404,
+        message: "Product not found"
+      });
+    }
+
+    const newImages = [];
+    const newVideos = [];
+
+    req.files.forEach(file => {
+      const fileData = {
+        filename: file.filename,
+        path: file.path,
+        mimetype: file.mimetype,
+        type: file.mimetype.startsWith("image/") ? "image" : "video",
+        uploadedAt: new Date()
+      };
+
+      if (file.mimetype.startsWith("image/")) {
+        newImages.push(fileData);
+      } else {
+        newVideos.push(fileData);
+      }
+    });
+
+    // Merge with existing gallery
+    const updatedImages = [...(product.galleryImage || []), ...newImages];
+    const updatedVideos = [...(product.galleryVideo || []), ...newVideos];
+
+    await Product.update(
+      { galleryImage: updatedImages, galleryVideo: updatedVideos },
+      { where: { slug } }
+    );
+
+    return res.status(200).json({
+      status: 200,
+      message: "Gallery images/videos updated successfully",
+      images: updatedImages,
+      videos: updatedVideos
+    });
+
+  } catch (error) {
+    console.error("Error in uploadMultipleImageVideo:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message || error
+    });
+  }
+};
+const getMultipleImageVideo = async (req, res) => {
+  try {
+    const slug = req.params.slug || req.query.slug;
+
+    if (isEmpty(slug)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Product slug is required"
+      });
+    }
+
+    const product = await Product.findOne({
+      where: { slug },
+      attributes: ["slug", "galleryImage", "galleryVideo"]
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        status: 404,
+        message: "Product not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Gallery fetched successfully",
+      data: {
+        slug: product.slug,
+        galleryImage: product.galleryImage || [],
+        galleryVideo: product.galleryVideo || []
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in getMultipleImageVideo:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message || error
+    });
+  }
+};
+const deleteGalleryFile = async (req, res) => {
+  try {
+    const { slug, filename, type } = req.body; // type: 'image' or 'video'
+
+    if (isEmpty(slug) || isEmpty(filename) || isEmpty(type)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Product slug, filename and type are required"
+      });
+    }
+
+    const product = await Product.findOne({ where: { slug } });
+    if (!product) {
+      return res.status(404).json({
+        status: 404,
+        message: "Product not found"
+      });
+    }
+
+    let updatedGallery;
+    if (type === 'image') {
+      updatedGallery = (product.galleryImage || []).filter(item => item.filename !== filename);
+      await Product.update(
+        { galleryImage: updatedGallery },
+        { where: { slug } }
+      );
+    } else if (type === 'video') {
+      updatedGallery = (product.galleryVideo || []).filter(item => item.filename !== filename);
+      await Product.update(
+        { galleryVideo: updatedGallery },
+        { where: { slug } }
+      );
+    } else {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid file type"
+      });
+    }
+
+    // Optional: Delete the actual file from storage
+    // const fs = require('fs').promises;
+    // try {
+    //   await fs.unlink(`path/to/upload/directory/${filename}`);
+    // } catch (fileError) {
+    //   console.warn("Could not delete physical file:", fileError.message);
+    // }
+
+    return res.status(200).json({
+      status: 200,
+      message: "File deleted successfully",
+      data: updatedGallery
+    });
+
+  } catch (error) {
+    console.error("Error in deleteGalleryFile:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal Server Error",
+      error: error.message || error
+    });
+  }
+};
 
 const getProduct = async (req, res, next) => {
     try {
@@ -839,4 +1013,4 @@ const updateProductReview = async (req, res, next) => {
 }
 
 
-module.exports = { addProduct, addSecondaryImages, getProduct, getProductDetail, updateProduct, deleteProduct, changeProductStatus, addProductTitle, getProductTitle, createProductInfoMultiLanguage, getProductSection, addProductReview, getProductReview, getProductAdminReview, updateProductReview }
+module.exports = { addProduct, addSecondaryImages, getProduct, getProductDetail, updateProduct, deleteProduct, changeProductStatus, addProductTitle, getProductTitle, createProductInfoMultiLanguage, getProductSection, addProductReview, getProductReview, getProductAdminReview, updateProductReview,uploadMultipleImageVideo ,getMultipleImageVideo,deleteGalleryFile}

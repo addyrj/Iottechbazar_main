@@ -371,7 +371,8 @@ const ProductDetail = () => {
                                 <div className="col-md-6">
                                     <ProductGallery
                                         primaryImage={primaryImage}
-                                        secondaryImage={secondaryImage}
+                                        // secondaryImage={secondaryImage}
+                                         slug={slug}
                                     />
                                 </div>
                                 {/* End .col-md-6 */}

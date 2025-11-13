@@ -103,6 +103,29 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.JSON,
             allowNull: true,
         },
+            // ✅ New fields for gallery
+  galleryImage: {
+      type: DataTypes.TEXT('long'), // use LONGTEXT
+      allowNull: true,
+      get() {
+        const rawValue = this.getDataValue('galleryImage');
+        return rawValue ? JSON.parse(rawValue) : [];
+      },
+      set(value) {
+        this.setDataValue('galleryImage', JSON.stringify(value || []));
+      },
+    },
+    galleryVideo: {
+      type: DataTypes.TEXT('long'), // use LONGTEXT
+      allowNull: true,
+      get() {
+        const rawValue = this.getDataValue('galleryVideo');
+        return rawValue ? JSON.parse(rawValue) : [];
+      },
+      set(value) {
+        this.setDataValue('galleryVideo', JSON.stringify(value || []));
+      },
+    },
         flipkartLink: {
             type: DataTypes.STRING,
             allowNull: true,

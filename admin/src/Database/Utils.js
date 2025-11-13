@@ -26,3 +26,10 @@ export const postHeaderWithoutToken = {
         "Content-Type": "multipart/form-data",
     }
 }
+export const deleteHeaderWithToken = {
+    headers: {
+        Accept: "*/*",
+        "Content-Type": "application/json",
+        Authorization: localStorage.getItem("iottechAdminToken"),
+    }
+}

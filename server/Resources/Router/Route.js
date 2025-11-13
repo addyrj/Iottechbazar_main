@@ -18,7 +18,7 @@ const { addManager, getManager } = require("../Controller/ManagementController")
 const { getNavbarList } = require("../Controller/NavbarController");
 const { addOrderStatusTitle, getOrderStatusTitle } = require("../Controller/OrderStatusTitleController");
 const { addPermission, getPermission, checkRouteAuthPermission, addPermissionFamily, getPermissionFamily } = require("../Controller/PermissionController");
-const { addProduct, getProduct, updateProduct, deleteProduct, changeProductStatus, getProductDetail, addSecondaryImages, addProductTitle, getProductTitle, createProductInfoMultiLanguage, getProductSection, addProductReview, getProductReview, getProductAdminReview, updateProductReview } = require("../Controller/ProductController");
+const { addProduct, getProduct, updateProduct, deleteProduct, changeProductStatus, getProductDetail, addSecondaryImages, addProductTitle, getProductTitle, createProductInfoMultiLanguage, getProductSection, addProductReview, getProductReview, getProductAdminReview, updateProductReview,uploadMultipleImageVideo,getMultipleImageVideo,deleteGalleryFile } = require("../Controller/ProductController");
 const { addRole, getRole, updateRole } = require("../Controller/RoleController");
 const { createApplicationInfo, getApplicationInfo, addShipping, getShipping, addAdminTheme, getAdminTheme, createWebsiteTheme, getWebsiteTheme } = require("../Controller/SettingController");
 const { createSocialLink, getSocialLink, updateSocialLink } = require("../Controller/SocialLinkController");
@@ -28,6 +28,7 @@ const { getCountry, getState, checkSession, createCity, getCity, createPincode, 
 const { addWishList, getWishList, removeWishList } = require("../Controller/WishListController");
 const { UserAuth, AdminAuth } = require("../Middleware/Auth");
 const uploadFiles = require("../Middleware/uploadfiles");
+const { multipleFileUpload, handleMulterError }  = require('../Middleware/multipleFileUpload');
 
 const express = require("express");
 
@@ -118,6 +119,12 @@ router.get("/adminUserCart", AdminAuth, uploadFiles.none(), getAdminCart)
 
 // add product
 router.post("/addProduct", AdminAuth, uploadFiles.single('avatar'), addProduct)
+
+router.post( "/uploadMultipleImageVideo",multipleFileUpload.array('avatar', 8), handleMulterError,uploadMultipleImageVideo);
+
+router.get( "/getMultipleImageVideo/:slug",getMultipleImageVideo);
+router.delete("/deleteGalleryFile", deleteGalleryFile);
+
 
 // add secondary images
 router.post("/addSecondaryProductImage", AdminAuth, uploadFiles.array('avatar', 12), addSecondaryImages)

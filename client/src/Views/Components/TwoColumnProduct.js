@@ -58,6 +58,32 @@ const TwoColumnProduct = ({
                 })
         }
     }
+
+       const addToCart = (id, slug, e) => {
+    e.stopPropagation(); // Prevent navigation when clicking add to cart
+    if (isEmpty(id.toString()) || isEmpty(slug)) {
+        toast.error("Failed! Product not found")
+    } else {
+        let formData = new FormData();
+        formData.append("productId", id)
+        formData.append("productSlug", slug)
+        formData.append("cartCount", "1") // ✅ CORRECT FIELD NAME
+        dispatch(setLoader(true));
+        axios.post(process.env.REACT_APP_BASE_URL + "addCart", formData, postHeaderWithToken)
+            .then((res) => {
+                if (res.data.status === 200) {
+                    dispatch(setLoader(false));
+                    toast.success(res.data.message);
+                    // You might want to dispatch an action to update cart count in redux store
+                }
+            })
+            .catch((error) => {
+                console.log("error is   ", error)
+                dispatch(setLoader(false));
+                toast.error(error?.response?.data?.message || error.message)
+            })
+    }
+}
     return (
         <div className="col-6">
             <div className="product product-7 text-center">
@@ -77,26 +103,17 @@ const TwoColumnProduct = ({
                         >
                             <span>Add to wishlist</span>
                         </a>
-                        <a
-                            href="#"
-                            className="btn-product-icon btn-wishlist btn-expandable"
-                            title="Quick view"
-                        >
-                            <span>Quick view</span>
-                        </a>
-                        <a
-                            href="#"
-                            className="btn-product-icon btn-wishlist btn-expandable"
-                            title="Compare"
-                        >
-                            <span>Compare</span>
-                        </a>
+                    
                     </div>
                     {/* End .product-action-vertical */}
                     <div className="product-action">
-                        <a href="#" className="btn-product btn-cart">
-                            <span>add to cart</span>
-                        </a>
+                        <a 
+                                onClick={(e) => addToCart(id, slug, e)} 
+                                className="btn-product btn-cart"
+                                style={{cursor: 'pointer'}}
+                            >
+                                <span>add to cart</span>
+                            </a>
                     </div>
                     {/* End .product-action */}
                 </figure>
