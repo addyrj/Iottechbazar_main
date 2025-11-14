@@ -68,12 +68,27 @@ const AdminProduct = () => {
           <div className="row">
             <div className="col-12">
               <div className="card">
+                <div className="card-header">
+                  <h3 className="card-title">
+                    <i className="fas fa-boxes mr-2"></i>
+                    Product Management
+                  </h3>
+                  <div className="card-tools">
+                    <span className="product-count">
+                      {allProducts?.length || 0} Products
+                    </span>
+                  </div>
+                </div>
                 <div className="card-body mb-4">
                   <div className="page-event">
-                    <NavLink to={"/admin_add_product"} className="buttonStyle">
+                    <NavLink to={"/admin_add_product"} className="buttonStyle primary">
+                      <i className="fas fa-plus-circle mr-2"></i>
                       Add Product
                     </NavLink>
-                    <button className="buttonStyle">Gst Rate</button>
+                    <button className="buttonStyle secondary">
+                      <i className="fas fa-percentage mr-2"></i>
+                      GST Rate
+                    </button>
                   </div>
                   <table
                     id="datatable"
@@ -88,172 +103,198 @@ const AdminProduct = () => {
                           animationData={noData}
                           loop={true}
                         />
+                        <p className="no-data-text">No products found. Start by adding your first product!</p>
                       </div>
                     ) : (
                       <>
                         <thead>
                           <tr>
-                            <th className="col-1">Id</th>
-                            <th className="col-2 text-left">Name</th>
+                            <th className="col-1 text-center">ID</th>
+                            <th className="col-2 text-left">Product</th>
                             <th className="col-2">Category</th>
-                            <th className="col-1">Price</th>
-                            <th className="col-1">Stock</th>
-                            <th className="col-1">Image</th>
-                            <th className="col-1">Created</th>
-                            <th className="col-2">Status</th>
-                            <th className="col-1">Action</th>
+                            <th className="col-1 text-center">Price</th>
+                            <th className="col-1 text-center">Stock</th>
+                            <th className="col-1 text-center">Image</th>
+                            <th className="col-1 text-center">Created By</th>
+                            <th className="col-2 text-center">Status</th>
+                            <th className="col-1 text-center">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {allProducts?.map((currElem, index) => {
                             return (
-                              <tr key={index}>
+                              <tr key={index} className="product-row">
                                 <td className="table-text-style text-center">
-                                  {currElem.id}
+                                  <span className="product-id">{currElem.id}</span>
                                 </td>
                                 <td className="table-text-style">
-                                  <div className="nameTextStyle">
-                                    {currElem.name}
-                                  </div>
-                                </td>
-                                <td className="table-text-style">
-                                  {currElem.categoryName}
-                                </td>
-                                <td className="table-text-style text-center">
-                                  ₹{currElem.productSpecialPrice}
-                                </td>
-                                <td className="table-text-style text-center">
-                                  {currElem.stock}
-                                </td>
-                                <td className="table-text-style">
-                                  <img
-                                    className="imageStyle text-center"
-                                    src={
-                                      process.env.REACT_APP_IMAGE_URL +
-                                      currElem.primaryImage
-                                    }
-                                  />
-                                </td>
-                                <td className="table-text-style text-center">
-                                  {currElem.createdBy}
-                                </td>
-                                <td className="table-text-style">
-                                  <div className="statusStyle">
-                                    {currElem.status}
-                                  </div>
-                                </td>
-                                <td className="table-text-style text-center">
-                                  <li
-                                    className="nav-item dropdown"
-                                    style={{ listStyleType: "none" }}
-                                  >
-                                    <a
-                                      className="nav-link"
-                                      data-toggle="dropdown"
-                                    >
-                                      <i className="fa fa-cogs"></i>
-                                    </a>
-                                    <div className="dropdown-menu dropdown-menu-lg dropdown-menu-right p-2">
-                                      <a onClick={() => dispatch(getAddImageModalState({ state: true, slug: currElem.slug, name: currElem.name }))}
-                                        className="dropdown-item mt-2 mb-1"
-                                        style={{ cursor: "pointer" }}
-                                      >
-                                        <div className="media">
-                                          <i className="fa fa-plus text-primary" />
-                                          <div className="media-body ml-2">
-                                            <h3 className="dropdown-item-title">
-                                              Add Secondary/Banner Images
-                                            </h3>
-                                          </div>
-                                        </div>
-                                      </a>
-
-                                      <NavLink
-                                        to={"/admin_edit_product"}
-                                        className="dropdown-item mt-2 mb-1"
-                                        state={{
-                                          id: currElem.id,
-                                          slug: currElem.slug,
-                                          name: currElem.name,
-                                          hsnCode: currElem.hsnCode,
-                                          poductSku: currElem.poductSku,
-                                          model: currElem.model,
-                                          productPrice: currElem.productPrice,
-                                          productSpecialPrice: currElem.productSpecialPrice,
-                                          discountType: currElem.discountType,
-                                          description: currElem.description,
-                                          offer: currElem.offer,
-                                          discount: currElem.discount,
-                                          basePrice: currElem.basePrice,
-                                          stock: currElem.stock,
-                                          primaryImage: currElem.primaryImage,
-                                          status: currElem.status,
-                                          categorySlug: currElem.categorySlug,
-                                          categoryName: currElem.categoryName,
-                                          subCategorySlug: currElem.subCategorySlug,
-                                          subCategoryName: currElem.subCategoryName,
-                                          createdBy: currElem.createdBy,
-                                          subScript: currElem.subScript,
-                                          secondaryImage: currElem.secondaryImage,
-                                          specification: currElem.specification,
-                                          manufacturer: currElem.manufacturer,
-                                          warrantyState: currElem.warrantyState,
-                                          warranty: currElem.warranty,
-                                          trending: currElem.trending,
-                                          onsale: currElem.onsale,
-                                          commingsoon: currElem.commingsoon,
-                                          schoolproject: currElem.schoolproject,
-                                          special: currElem.special,
-                                          rating: currElem.rating,
-                                          review: currElem.review,
-                                          productSectionValue: currElem.productSectionValue || [],
-                                          gstRate: currElem.gstRate,
-                                          gst: currElem.gst,
-                                          metaTag: currElem.metaTag,
-                                          flipLink: currElem.flipLink,
-                                          amazonLink: currElem.amazonLink,
-                                          meeshoLink: currElem.meeshoLink,
-                                          colorVarinat: currElem.colorVarinat,
-                                          attribute: currElem.attribute,
-                                          attributeFamily: currElem.attributeFamily
-                                        }}
-                                      >
-                                        <div className="media">
-                                          <i className="fa fa-edit text-primary" />
-                                          <div className="media-body ml-2">
-                                            <h3 className="dropdown-item-title">Edit Product</h3>
-                                          </div>
-                                        </div>
-                                      </NavLink>
-                                      <div className="dropdown-divider" />
-
-                                      <a
-                                        className="dropdown-item mt-2 mb-1"
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() => handleDeleteProduct(currElem.slug)}
-                                      >
-                                        <div className="media">
-                                          <i className="fa fa-trash text-danger" />
-                                          <div className="media-body ml-2">
-                                            <h3 className="dropdown-item-title">
-                                              Delete Product
-                                            </h3>
-                                          </div>
-                                        </div>
-                                      </a>
-
-                                      <a className="dropdown-item mt-2 mb-1" style={{ cursor: "pointer" }}>
-                                        <div className="media" onClick={() => dispatch(productLanState({ proLanState: true, proSlug: currElem.slug }))}>
-                                          <i className="fa fa-language text-primary" />
-                                          <div className="media-body ml-2">
-                                            <h3 className="dropdown-item-title">
-                                              Add More Languages
-                                            </h3>
-                                          </div>
-                                        </div>
-                                      </a>
+                                  <div className="product-info">
+                                    <div className="nameTextStyle" title={currElem.name}>
+                                      {currElem.name}
                                     </div>
-                                  </li>
+                                    {currElem.subScript && (
+                                      <div className="sub-script">
+                                        {currElem.subScript}
+                                      </div>
+                                    )}
+                                    <div className="product-sku">
+                                      SKU: {currElem.poductSku}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="table-text-style">
+                                  <div className="category-info">
+                                    <div className="category-name">
+                                      {currElem.categoryName}
+                                    </div>
+                                    {currElem.subCategoryName && (
+                                      <div className="sub-category">
+                                        {currElem.subCategoryName}
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <div className="price-info">
+                                    <div className="current-price">₹{currElem.productSpecialPrice}</div>
+                                    {currElem.discount > 0 && (
+                                      <div className="original-price">
+                                        <s>₹{currElem.productPrice}</s>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <div className={`stock-badge ${currElem.stock > 10 ? 'in-stock' : currElem.stock > 0 ? 'low-stock' : 'out-of-stock'}`}>
+                                    {currElem.stock}
+                                  </div>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <div className="image-container">
+                                    {currElem.primaryImage ? (
+                                      <img
+                                        className="imageStyle"
+                                        src={process.env.REACT_APP_IMAGE_URL + currElem.primaryImage}
+                                        alt={currElem.name}
+                                      />
+                                    ) : (
+                                      <div className="no-image-placeholder">
+                                        <i className="fas fa-image"></i>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <span className="created-by-badge">
+                                    {currElem.createdBy}
+                                  </span>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <div className={`status-badge ${currElem.status === "true" ? "active" : "inactive"}`}>
+                                    {currElem.status === "true" ? "Active" : "Inactive"}
+                                  </div>
+                                </td>
+                                <td className="table-text-style text-center">
+                                  <div className="action-menu">
+                                    <div className="dropdown">
+                                      <button
+                                        className="action-btn"
+                                        data-toggle="dropdown"
+                                        aria-haspopup="true"
+                                        aria-expanded="false"
+                                      >
+                                        <i className="fas fa-ellipsis-v"></i>
+                                      </button>
+                                      <div className="dropdown-menu dropdown-menu-right">
+                                        <button 
+                                          className="dropdown-item"
+                                          onClick={() => dispatch(getAddImageModalState({ 
+                                            state: true, 
+                                            slug: currElem.slug, 
+                                            name: currElem.name 
+                                          }))}
+                                        >
+                                          <i className="fas fa-images text-primary mr-2"></i>
+                                          Add Banner Images
+                                        </button>
+
+                                        <NavLink
+                                          to={"/admin_edit_product"}
+                                          className="dropdown-item"
+                                          state={{
+                                            id: currElem.id,
+                                            slug: currElem.slug,
+                                            name: currElem.name,
+                                            hsnCode: currElem.hsnCode,
+                                            poductSku: currElem.poductSku,
+                                            model: currElem.model,
+                                            productPrice: currElem.productPrice,
+                                            productSpecialPrice: currElem.productSpecialPrice,
+                                            discountType: currElem.discountType,
+                                            description: currElem.description,
+                                            offer: currElem.offer,
+                                            discount: currElem.discount,
+                                            basePrice: currElem.basePrice,
+                                            stock: currElem.stock,
+                                            primaryImage: currElem.primaryImage,
+                                            status: currElem.status,
+                                            categorySlug: currElem.categorySlug,
+                                            categoryName: currElem.categoryName,
+                                            subCategorySlug: currElem.subCategorySlug,
+                                            subCategoryName: currElem.subCategoryName,
+                                            createdBy: currElem.createdBy,
+                                            subScript: currElem.subScript,
+                                            secondaryImage: currElem.secondaryImage,
+                                            specification: currElem.specification,
+                                            manufacturer: currElem.manufacturer,
+                                            warrantyState: currElem.warrantyState,
+                                            warranty: currElem.warranty,
+                                            trending: currElem.trending,
+                                            onsale: currElem.onsale,
+                                            commingsoon: currElem.commingsoon,
+                                            schoolproject: currElem.schoolproject,
+                                            special: currElem.special,
+                                            rating: currElem.rating,
+                                            review: currElem.review,
+                                            productSectionValue: currElem.productSectionValue || [],
+                                            gstRate: currElem.gstRate,
+                                            gst: currElem.gst,
+                                            metaTag: currElem.metaTag,
+                                            flipLink: currElem.flipLink,
+                                            amazonLink: currElem.amazonLink,
+                                            meeshoLink: currElem.meeshoLink,
+                                            colorVarinat: currElem.colorVarinat,
+                                            attribute: currElem.attribute,
+                                            attributeFamily: currElem.attributeFamily
+                                          }}
+                                        >
+                                          <i className="fas fa-edit text-warning mr-2"></i>
+                                          Edit Product
+                                        </NavLink>
+
+                                        <button
+                                          className="dropdown-item"
+                                          onClick={() => dispatch(productLanState({ 
+                                            proLanState: true, 
+                                            proSlug: currElem.slug 
+                                          }))}
+                                        >
+                                          <i className="fas fa-language text-info mr-2"></i>
+                                          Add Languages
+                                        </button>
+
+                                        <div className="dropdown-divider"></div>
+
+                                        <button
+                                          className="dropdown-item text-danger"
+                                          onClick={() => handleDeleteProduct(currElem.slug)}
+                                        >
+                                          <i className="fas fa-trash mr-2"></i>
+                                          Delete Product
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -273,23 +314,49 @@ const AdminProduct = () => {
 };
 
 const Wrapper = styled.section`
-  .parentLayout {
-    filter: blur(8px);
-    -webkit-filter: blur(8px);
+  .card-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+    
+    .card-title {
+      font-weight: 600;
+      margin: 0;
+      font-size: 1.25rem;
+      
+      i {
+        opacity: 0.9;
+      }
+    }
+    
+    .product-count {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 15px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
   }
-  .mainLayout {
-    height: 100vh;
-    overflow-y: auto;
+
+  .product-row {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
   }
+
   .table-text-style {
-    color: black;
-    font-size: 1rem;
-    font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+    color: #2d3748;
+    font-size: 14px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    vertical-align: middle;
     transition: color 0.2s ease;
   }
-  .table-text-style:hover {
-    color: #ff6000;
-  }
+
   .page-event {
     position: absolute;
     width: 75%;
@@ -299,62 +366,231 @@ const Wrapper = styled.section`
     align-items: center;
     justify-content: start;
     z-index: 999;
-    gap: 20px;
+    gap: 15px;
+    margin-top: -7px;
+    margin-left: 400px;
 
     .buttonStyle {
-      width: 200px;
+      width: auto;
+      min-width: 160px;
       height: 2.5rem;
-      background-color: #17a2b8;
       color: white;
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 14px;
+      font-weight: 600;
       transition: all 0.3s ease;
       text-decoration: none;
+      padding: 0 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       
-      &:hover,
-      &:active {
-        background-color: white;
-        border: #17a2b8 1px solid;
-        color: black;
-        cursor: pointer;
-        transform: scale(0.96);
-        text-decoration: none;
+      &.primary {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        
+        &:hover {
+          background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+        }
+      }
+      
+      &.secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        
+        &:hover {
+          background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
       }
     }
   }
-  .imageStyle {
-    width: 50px;
-    height: 30px;
-    object-fit: cover;
-    border-radius: 4px;
-  }
-  .nameTextStyle {
-    white-space: nowrap;
-    width: 250px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .statusStyle {
-    background-color: #28a745;
-    height: 2rem;
-    text-align: center;
-    border-radius: 20px;
-    color: white;
-    padding-top: 2px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+
+  .product-info {
+    .nameTextStyle {
+      white-space: nowrap;
+      width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 2px;
+      font-size: 14px;
+    }
     
-    &:hover {
-      background-color: #218838;
+    .sub-script {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 2px;
+    }
+    
+    .product-sku {
+      font-size: 11px;
+      color: #8a8a8a;
     }
   }
+
+  .category-info {
+    .category-name {
+      font-weight: 500;
+      margin-bottom: 2px;
+      font-size: 14px;
+    }
+    
+    .sub-category {
+      font-size: 12px;
+      color: #6c757d;
+    }
+  }
+
+  .price-info {
+    .current-price {
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+    
+    .original-price {
+      font-size: 12px;
+      color: #6c757d;
+    }
+  }
+
+  .stock-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 40px;
+    
+    &.in-stock {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    &.low-stock {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    
+    &.out-of-stock {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  }
+
+  .image-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .imageStyle {
+      width: 70px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+    
+    }
+    
+    .no-image-placeholder {
+      width: 70px;
+      height: 60px;
+      background: #f8f9fa;
+    
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6c757d;
+      
+      i {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .created-by-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    
+    &.active {
+      background-color: #28a745;
+      color: #155724;
+    }
+    
+    &.inactive {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  }
+
+  .action-menu {
+    .action-btn {
+      background: none;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 6px 12px;
+      color: #6c757d;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      
+      &:hover {
+        background-color: #f8f9fa;
+        border-color: #17a2b8;
+        color: #17a2b8;
+      }
+    }
+    
+    .dropdown-menu {
+      border: none;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 0.5rem;
+      
+      .dropdown-item {
+        padding: 8px 12px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        border-radius: 4px;
+        margin-bottom: 2px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        
+        &:hover {
+          background-color: #f8f9fa;
+        }
+        
+        &.text-danger:hover {
+          background-color: #f8d7da;
+          color: #721c24;
+        }
+      }
+    }
+  }
+
   .noDataStyle {
     width: 100%;
     height: 400px;
@@ -363,24 +599,37 @@ const Wrapper = styled.section`
     justify-content: center;
     flex-direction: column;
     margin-top: 60px;
-  }
-  
-  .dropdown-item {
-    transition: background-color 0.2s ease;
     
-    &:hover {
-      background-color: #f8f9fa;
+    .no-data-text {
+      margin-top: 1rem;
+      color: #6c757d;
+      font-size: 14px;
     }
   }
-  
-  .dropdown-item-title {
-    font-size: 14px;
-    margin: 0;
-    font-weight: 500;
+
+  .product-id {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #495057;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
   }
-  
-  .media {
-    align-items: center;
+
+  @media (max-width: 768px) {
+    .page-event {
+      position: relative;
+      width: 100%;
+      margin-top: 0;
+      margin-bottom: 20px;
+      margin-left: 0;
+      justify-content: center;
+    }
+    
+    .nameTextStyle {
+      width: 150px !important;
+    }
   }
 `;
 

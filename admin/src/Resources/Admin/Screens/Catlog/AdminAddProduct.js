@@ -784,7 +784,7 @@ const AdminCreateProduct = () => {
                                 </div>
                             </div>
                             
-                            <div className="row">
+                            {/* <div className="row">
                                 <div className="col-md-8">
                                     <div className="form-group">
                                         <label htmlFor="exampleInputFile">Product Secondary Image*</label>
@@ -818,7 +818,7 @@ const AdminCreateProduct = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
                             
                             <div className="row">
                                 <div className="col-md-6">
