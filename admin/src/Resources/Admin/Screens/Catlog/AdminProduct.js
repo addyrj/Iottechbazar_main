@@ -206,12 +206,12 @@ const AdminProduct = () => {
                                         <i className="fas fa-ellipsis-v"></i>
                                       </button>
                                       <div className="dropdown-menu dropdown-menu-right">
-                                        <button 
+                                        <button
                                           className="dropdown-item"
-                                          onClick={() => dispatch(getAddImageModalState({ 
-                                            state: true, 
-                                            slug: currElem.slug, 
-                                            name: currElem.name 
+                                          onClick={() => dispatch(getAddImageModalState({
+                                            state: true,
+                                            slug: currElem.slug,
+                                            name: currElem.name
                                           }))}
                                         >
                                           <i className="fas fa-images text-primary mr-2"></i>
@@ -226,7 +226,7 @@ const AdminProduct = () => {
                                             slug: currElem.slug,
                                             name: currElem.name,
                                             hsnCode: currElem.hsnCode,
-                                            poductSku: currElem.poductSku,
+                                            productSku: currElem.productSku, // Fixed: was poductSku
                                             model: currElem.model,
                                             productPrice: currElem.productPrice,
                                             productSpecialPrice: currElem.productSpecialPrice,
@@ -260,12 +260,12 @@ const AdminProduct = () => {
                                             gstRate: currElem.gstRate,
                                             gst: currElem.gst,
                                             metaTag: currElem.metaTag,
-                                            flipLink: currElem.flipLink,
+                                            flipkartLink: currElem.flipkartLink, // Fixed: was flipLink
                                             amazonLink: currElem.amazonLink,
                                             meeshoLink: currElem.meeshoLink,
-                                            colorVarinat: currElem.colorVarinat,
-                                            attribute: currElem.attribute,
-                                            attributeFamily: currElem.attributeFamily
+                                            colorVariantSlug: currElem.colorVariantSlug, // Fixed: was colorVarinat
+                                            attributeSlug: currElem.attributeSlug, // Fixed: was attribute
+                                            attributeFamilySlug: currElem.attributeFamilySlug // Fixed: was attributeFamily
                                           }}
                                         >
                                           <i className="fas fa-edit text-warning mr-2"></i>
@@ -274,9 +274,9 @@ const AdminProduct = () => {
 
                                         <button
                                           className="dropdown-item"
-                                          onClick={() => dispatch(productLanState({ 
-                                            proLanState: true, 
-                                            proSlug: currElem.slug 
+                                          onClick={() => dispatch(productLanState({
+                                            proLanState: true,
+                                            proSlug: currElem.slug
                                           }))}
                                         >
                                           <i className="fas fa-language text-info mr-2"></i>

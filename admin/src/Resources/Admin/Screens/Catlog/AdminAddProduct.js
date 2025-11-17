@@ -220,56 +220,154 @@ const AdminCreateProduct = () => {
         }
         setMultipleSelect(0);
     };
+ const createProduct = () => {
+    if (isEmpty(productInfo.productName)) {
+        toast.error("Failed! Product name not found");
+    } else if (isEmpty(productInfo.subScript)) {
+        toast.error("Failed! Product sub-script not found");
+    } else if (isEmpty(productInfo.productPrice)) {
+        toast.error("Failed! Product price not found");
+    } else if (isEmpty(productInfo.specialPrice)) {
+        toast.error("Failed! Product special price not found");
+    } else if (productInfo.basePrice === "") {
+        toast.error("Failed! Product base price not found");
+    } else if (productInfo.discount === "") {
+        toast.error("Failed! Discount is not found");
+    } else if (isEmpty(productInfo.gstRate)) {
+        toast.error("Failed! Gst Rate not found");
+    } else if (productInfo.gst === "") {
+        toast.error("Failed! Gst not found");
+    } else if (productInfo.stock === "") {
+        toast.error("Failed! Product stock not found");
+    } else if (isEmpty(productInfo.category)) {
+        toast.error("Failed! Category not found");
+    } else if (isEmpty(productInfo.subCategory)) {
+        toast.error("Failed! Sub-Category not found");
+    } else if (isEmpty(productInfo.discountType)) {
+        toast.error("Failed! Discount type not found");
+    } else if (productInfo.productSectionValue.length === 0) {
+        toast.error("Failed! Please select product section");
+    } else if (!productInfo.avatar || !(productInfo.avatar instanceof File)) {
+        toast.error("Failed! Please upload product primary image");
+    } else {
+        dispatch(setLoder(true));
 
-    const createProduct = () => {
-        if (isEmpty(productInfo.productName)) {
-            toast.error("Failed! Product name not found");
-        } else if (isEmpty(productInfo.subScript)) {
-            toast.error("Failed! Product sub-script not found");
-        } else if (isEmpty(productInfo.productPrice)) {
-            toast.error("Failed! Product price not found");
-        } else if (isEmpty(productInfo.specialPrice)) {
-            toast.error("Failed! Product special price not found");
-        } else if (productInfo.basePrice === "") {
-            toast.error("Failed! Product base price not found");
-        } else if (productInfo.discount === "") {
-            toast.error("Failed! Discount is not found");
-        } else if (isEmpty(productInfo.gstRate)) {
-            toast.error("Failed! Gst Rate not found");
-        } else if (productInfo.gst === "") {
-            toast.error("Failed! Gst not found");
-        } else if (productInfo.stock === "") {
-            toast.error("Failed! Product stock not found");
-        } else if (isEmpty(productInfo.category)) {
-            toast.error("Failed! Category not found");
-        } else if (isEmpty(productInfo.subCategory)) {
-            toast.error("Failed! Sub-Category not found");
-        } else if (isEmpty(productInfo.discountType)) {
-            toast.error("Failed! Discount type not found");
-        } else if (productInfo.productSectionValue.length === 0) {
-            toast.error("Failed! Please select product section");
+        // Create FormData for file upload
+        const formData = new FormData();
+
+        // Append the primary image file
+        if (productInfo.avatar && productInfo.avatar instanceof File) {
+            formData.append('avatar', productInfo.avatar);
         } else {
-            dispatch(setLoder(true));
-            axios
-                .post(
-                    process.env.REACT_APP_BASE_URL + "addProduct",
-                    productInfo,
-                    postHeaderWithToken
-                )
-                .then((response) => {
-                    if (response.data.status === 200) {
-                        dispatch(setLoder(false));
-                        navigate("/admin_product");
-                        toast.success(response.data.message);
-                    }
-                })
-                .catch((error) => {
-                    dispatch(setLoder(false));
-                    console.log("error is   ", error);
-                    toast.error(error?.response?.data?.message || error.message);
-                });
+            toast.error("Invalid file selected");
+            dispatch(setLoder(false));
+            return;
         }
-    };
+
+        // Get selected product section names
+        const selectedSectionNames = productInfo.productSectionValue.map(section => section.name);
+        
+        // Set product section flags based on selected sections
+        const trending = selectedSectionNames.includes("Trending") ? "true" : "false";
+        const onsale = selectedSectionNames.includes("On Sale") ? "true" : "false";
+        const commingsoon = selectedSectionNames.includes("Coming Soon") ? "true" : "false";
+        const schoolproject = selectedSectionNames.includes("School Science Project") ? "true" : "false";
+        const special = selectedSectionNames.includes("Special") ? "true" : "false";
+
+        // Append all product data with correct field names for backend
+        const productData = {
+            productName: productInfo.productName,
+            subScript: productInfo.subScript,
+            hsnCode: productInfo.hsnCode,
+            productSku: productInfo.productSku,
+            model: productInfo.model,
+            colorVarinat: productInfo.colorVarinat,
+            category: productInfo.category,
+            subCategory: productInfo.subCategory,
+            attribute: productInfo.attribute,
+            attributeFamily: productInfo.attributeFamily,
+            productPrice: productInfo.productPrice,
+            specialPrice: productInfo.specialPrice,
+            gst: productInfo.gst,
+            gstRate: productInfo.gstRate,
+            discountType: productInfo.discountType,
+            discount: productInfo.discount,
+            basePrice: productInfo.basePrice,
+            stock: productInfo.stock,
+            metaTag: productInfo.metaTag,
+            flipLink: productInfo.flipLink,
+            amazonLink: productInfo.amazonLink,
+            meeshoLink: productInfo.meeshoLink,
+            productDesc: productInfo.productDesc,
+            productSpec: productInfo.productSpec,
+            productOffer: productInfo.productOffer,
+            productManufacturer: productInfo.productManufacturer,
+            productWarranty: productInfo.productWarranty,
+            productSectionValue: productInfo.productSectionValue,
+            url: productInfo.url,
+            trending: trending,
+            onsale: onsale,
+            commingsoon: commingsoon,
+            schoolproject: schoolproject,
+            special: special
+        };
+
+        console.log("Product section flags:", { trending, onsale, commingsoon, schoolproject, special });
+
+        // Append product data as JSON string
+        formData.append('productData', JSON.stringify(productData));
+
+        // Get the token from localStorage
+        const token = localStorage.getItem("iottechAdminToken");
+
+        if (!token) {
+            toast.error("Authentication token not found. Please login again.");
+            dispatch(setLoder(false));
+            return;
+        }
+
+        // Create headers with authorization
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+        };
+
+        axios
+            .post(
+                process.env.REACT_APP_BASE_URL + "addProduct",
+                formData,
+                {
+                    headers: headers,
+                    timeout: 30000
+                }
+            )
+            .then((response) => {
+                if (response.data.status === 200) {
+                    dispatch(setLoder(false));
+                    navigate("/admin_product");
+                    toast.success(response.data.message);
+                } else {
+                    dispatch(setLoder(false));
+                    toast.error(response.data.message || "Something went wrong");
+                }
+            })
+            .catch((error) => {
+                dispatch(setLoder(false));
+                console.log("Error details:", error);
+                if (error.response?.status === 401) {
+                    toast.error("Authentication failed. Please login again.");
+                    localStorage.removeItem('iottechAdminToken');
+                    navigate('/admin_login');
+                } else if (error.response) {
+                    toast.error(error.response.data.message || "Server error occurred");
+                } else if (error.request) {
+                    toast.error("No response from server. Please check your connection.");
+                } else {
+                    toast.error(error.message || "An error occurred");
+                }
+            });
+    }
+};
 
     useEffect(() => {
         dispatch(getCategoryData({ navigate: navigate }));
@@ -486,7 +584,7 @@ const AdminCreateProduct = () => {
                                     className="form-control select2"
                                     style={{ width: "100%" }}
                                     value={productInfo.colorVarinat}
-                                    onChange={(e) => setProductInfo({...productInfo, colorVarinat: e.target.value})}
+                                    onChange={(e) => setProductInfo({ ...productInfo, colorVarinat: e.target.value })}
                                 >
                                     {colorList?.map((currElem, index) => (
                                         <option key={index} value={currElem.slug}>
@@ -495,7 +593,7 @@ const AdminCreateProduct = () => {
                                     ))}
                                 </select>
                             </div>
-                            
+
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="form-group">
@@ -523,7 +621,7 @@ const AdminCreateProduct = () => {
                                             className="form-control select2"
                                             style={{ width: "100%" }}
                                             value={productInfo.subCategory}
-                                            onChange={(e) => setProductInfo({...productInfo, subCategory: e.target.value})}
+                                            onChange={(e) => setProductInfo({ ...productInfo, subCategory: e.target.value })}
                                         >
                                             {subCatData?.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
@@ -560,7 +658,7 @@ const AdminCreateProduct = () => {
                                             className="form-control select2"
                                             style={{ width: "100%" }}
                                             value={productInfo.attributeFamily}
-                                            onChange={(e) => setProductInfo({...productInfo, attributeFamily: e.target.value})}
+                                            onChange={(e) => setProductInfo({ ...productInfo, attributeFamily: e.target.value })}
                                         >
                                             {atriFamilyData.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
@@ -609,9 +707,9 @@ const AdminCreateProduct = () => {
                                                 productInfo.productPrice.length === 0
                                                     ? toast.error("Please enter product price")
                                                     : parseInt(productInfo.productPrice) < parseInt(e.target.value)
-                                                    ? toast.error("Special price can not be greater than product price") ||
-                                                      setProductInfo({...productInfo, specialPrice: ""})
-                                                    : setProductInfo({...productInfo, specialPrice: e.target.value})
+                                                        ? toast.error("Special price can not be greater than product price") ||
+                                                        setProductInfo({ ...productInfo, specialPrice: "" })
+                                                        : setProductInfo({ ...productInfo, specialPrice: e.target.value })
                                             }
                                         />
                                     </div>
@@ -646,8 +744,8 @@ const AdminCreateProduct = () => {
                                                 isEmpty(productInfo.productPrice) || isEmpty(productInfo.specialPrice)
                                                     ? toast.error("Please enter valid product price")
                                                     : isEmpty(productInfo.gstRate)
-                                                    ? toast.error("Please enter gst rate")
-                                                    : getBasePrice(e.target.value)
+                                                        ? toast.error("Please enter gst rate")
+                                                        : getBasePrice(e.target.value)
                                             }
                                         >
                                             {selectGst.map((currElem, index) => (
@@ -743,6 +841,7 @@ const AdminCreateProduct = () => {
                         </div>
                     </div>
 
+
                     {/* Product Items Card */}
                     <div className="card card-primary">
                         <div className="card-header">
@@ -759,67 +858,69 @@ const AdminCreateProduct = () => {
                                                     type="file"
                                                     className="custom-file-input"
                                                     id="primaryImage"
-                                                    name="primaryImage"
-                                                    onChange={(e) => setProductInfo({...productInfo, avatar: e.target.files[0]})}
+                                                    name="avatar"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            setProductInfo({
+                                                                ...productInfo,
+                                                                avatar: file
+                                                            });
+
+                                                            // Update the file input label
+                                                            const label = e.target.nextElementSibling;
+                                                            label.textContent = file.name;
+                                                        }
+                                                    }}
                                                 />
                                                 <label className="custom-file-label" htmlFor="exampleInputFile">
-                                                    Choose file
+                                                    {productInfo.avatar && productInfo.avatar.name
+                                                        ? productInfo.avatar.name
+                                                        : "Choose file"
+                                                    }
                                                 </label>
                                             </div>
                                             <div className="input-group-append">
                                                 <span className="input-group-text">Upload</span>
                                             </div>
                                         </div>
+                                        {productInfo.avatar && productInfo.avatar.name && (
+                                            <small className="form-text text-success">
+                                                File selected: {productInfo.avatar.name}
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="col-md-4">
                                     <div className="form-group">
                                         <div>
                                             <img
-                                                src={productInfo.avatar.name ? URL.createObjectURL(productInfo.avatar) : noImage}
-                                                style={{ width: "120px", height: "80px", objectFit: "contain" }}
+                                                src={
+                                                    productInfo.avatar && productInfo.avatar instanceof File
+                                                        ? URL.createObjectURL(productInfo.avatar)
+                                                        : noImage
+                                                }
+                                                style={{
+                                                    width: "120px",
+                                                    height: "80px",
+                                                    objectFit: "contain",
+                                                    border: "1px solid #ddd",
+                                                    borderRadius: "5px"
+                                                }}
+                                                alt="Product preview"
                                             />
                                         </div>
+                                        {productInfo.avatar && productInfo.avatar.name && (
+                                            <small className="form-text text-muted">
+                                                Preview
+                                            </small>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* <div className="row">
-                                <div className="col-md-8">
-                                    <div className="form-group">
-                                        <label htmlFor="exampleInputFile">Product Secondary Image*</label>
-                                        <div className="input-group">
-                                            <div className="custom-file">
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    className="custom-file-input"
-                                                    id="secondaryImage"
-                                                    name="secondaryImage"
-                                                    onChange={(e) => setProductInfo({...productInfo, secondaryImage: e.target.files})}
-                                                />
-                                                <label className="custom-file-label" htmlFor="exampleInputFile">
-                                                    Choose file
-                                                </label>
-                                            </div>
-                                            <div className="input-group-append">
-                                                <span className="input-group-text">Upload</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4">
-                                    <div className="form-group">
-                                        <div>
-                                            <img
-                                                src={productInfo.avatar.name ? URL.createObjectURL(productInfo.avatar) : noImage}
-                                                style={{ width: "120px", height: "80px", objectFit: "contain" }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> */}
-                            
+
+                            {/* Rest of your existing code for links */}
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="form-group">
@@ -850,7 +951,7 @@ const AdminCreateProduct = () => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="form-group">
                                 <label htmlFor="meeshoLink">Meesho Link*</label>
                                 <input

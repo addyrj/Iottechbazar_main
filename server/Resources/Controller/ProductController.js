@@ -14,99 +14,402 @@ const User = db.user;
 
 const addProduct = async (req, res, next) => {
     try {
-        // metaTag
         const admin = req.admin;
-        const { productName, subScript, hsnCode, productSku, model, colorVarinat, category, subCategory,
-            attribute, attributeFamily, productPrice, specialPrice, gst, gstRate, discountType, discount, basePrice, stock,
-            metaTag, flipLink, amazonLink, meeshoLink, productDesc, productSpec, productOffer, productManufacturer,
-            url, warranty, trending, onsale, commingsoon, schoolproject, special } = req.body;
+        
+        // Parse productData from formData
+        let productData;
+        try {
+            productData = JSON.parse(req.body.productData);
+        } catch (parseError) {
+            console.log("Error parsing productData:", parseError);
+            return res.status(300).json({
+                status: 300,
+                message: "Invalid product data format"
+            });
+        }
 
-        const errorResponse = await ErrorNullResponse(req.body);
+        const {
+            productName, subScript, hsnCode, productSku, model, colorVarinat, category, subCategory,
+            attribute, attributeFamily, productPrice, specialPrice, gst, gstRate, discountType, discount,
+            basePrice, stock, metaTag, flipLink, amazonLink, meeshoLink, productDesc, productSpec,
+            productOffer, productManufacturer, url, warranty, trending, onsale, commingsoon, schoolproject,
+            special, productSectionValue
+        } = productData;
+
         if (!admin) {
             return res.status(300).send({
                 status: 300,
                 message: "Failed! You have not authorized"
-            })
-        } else {
-            const checkPermission = await checkRoutePermission(admin, url);
-            if (checkPermission === true) {
-                const slug = await generateProductSlug(productName);
+            });
+        }
 
-                let warrantyState;
-                isEmpty(warranty) ? warrantyState = false : warrantyState = true
+        const checkPermission = await checkRoutePermission(admin, url);
+        if (checkPermission !== true) {
+            return res.status(300).send({
+                status: 300,
+                message: "Authorization Failed!"
+            });
+        }
 
-                let info = {
-                    slug: slug,
-                    name: productName,
-                    subScript: subScript,
-                    hsnCode: hsnCode,
-                    productSku: productSku,
-                    model: model,
-                    colorVariantSlug: colorVarinat,
-                    categorySlug: category,
-                    subCategorySlug: subCategory,
-                    attributeSlug: attribute,
-                    attributeFamilySlug: attributeFamily,
-                    productPrice: productPrice,
-                    productSpecialPrice: specialPrice,
-                    gst: gst,
-                    gstRate: gstRate,
-                    discountType: discountType,
-                    discount: discount,
-                    basePrice: basePrice,
-                    stock: stock,
-                    metaTag: metaTag,
-                    primaryImage: req.file !== undefined ? req.file.filename : null,
-                    flipkartLink: flipLink,
-                    amazonLink: amazonLink,
-                    meeshoLink: meeshoLink,
-                    description: productDesc,
-                    specification: productSpec,
-                    offer: productOffer,
-                    manufacturer: productManufacturer,
-                    warrantyState: warrantyState,
-                    warranty: warranty,
-                    status: "true",
-                    createdBy: admin.role,
-                    trending: trending,
-                    onsale: onsale,
-                    commingsoon: commingsoon,
-                    schoolproject: schoolproject,
-                    special: special
-                }
+        const slug = await generateProductSlug(productName);
+        const warrantyState = !warranty || warranty === "<p></p>" || warranty === "<p><br></p>" ? false : true;
 
-                await Product.create(info)
-                    .then((response) => {
-                        return res.status(200).json({
-                            status: 200,
-                            message: "Product Create Successfull",
-                            info: response
-                        })
-                    })
-                    .catch((error) => {
-                        return res.status(300).json({
-                            status: 300,
-                            message: "Failed! Product not Created",
-                            info: error
-                        })
-                    })
-
-            } else {
-                return res.status(300).send({
-                    status: 300,
-                    message: "Authorization Failed!"
-                })
+        let parsedProductSectionValue = [];
+        if (productSectionValue) {
+            try {
+                parsedProductSectionValue =
+                    typeof productSectionValue === "string"
+                        ? JSON.parse(productSectionValue)
+                        : productSectionValue;
+            } catch (error) {
+                console.log("Error parsing productSectionValue:", error);
+                parsedProductSectionValue = [];
             }
         }
+
+        // Handle file upload
+        let primaryImage = null;
+        if (req.file) {
+            primaryImage = req.file.filename;
+        }
+
+        const info = {
+            slug,
+            name: productName,
+            subScript,
+            hsnCode,
+            productSku,
+            model,
+            colorVariantSlug: colorVarinat,
+            categorySlug: category,
+            subCategorySlug: subCategory,
+            attributeSlug: attribute,
+            attributeFamilySlug: attributeFamily,
+            productPrice,
+            productSpecialPrice: specialPrice,
+            gst,
+            gstRate,
+            discountType,
+            discount,
+            basePrice,
+            stock,
+            metaTag,
+            primaryImage: primaryImage,
+            flipkartLink: flipLink,
+            amazonLink: amazonLink,
+            meeshoLink: meeshoLink,
+            description: productDesc,
+            specification: productSpec,
+            offer: productOffer,
+            manufacturer: productManufacturer,
+            warrantyState,
+            warranty: warrantyState ? warranty : null,
+            status: "true",
+            createdBy: admin.role,
+            trending,
+            onsale,
+            commingsoon,
+            schoolproject,
+            special,
+            productSectionValue: parsedProductSectionValue
+        };
+
+        console.log("Creating product with info:", info);
+
+        const response = await Product.create(info);
+        return res.status(200).json({
+            status: 200,
+            message: "Product Created Successfully",
+            info: response
+        });
+
     } catch (error) {
+        console.log("General error in addProduct:", error);
+        return res.status(500).json({
+            status: 500,
+            error: true,
+            message: error.message || "Internal server error"
+        });
+    }
+};
+const getProduct = async (req, res, next) => {
+    try {
+        const getAllProduct = await Product.findAll();
+        const getAllCategory = await Category.findAll();
+        const getAllSubCategory = await SubCategory.findAll();
+        const checkProductReview = await ProductReview.findAll();
+
+        if (getAllProduct.length !== 0) {
+            const filterProduct = getAllProduct.map((currElem) => {
+                const id = currElem.id;
+                const slug = currElem.slug;
+                const name = currElem.name;
+                const subScript = currElem.subScript;
+                const hiName = currElem.hiName;
+                const hsnCode = currElem.hsnCode;
+                const productSku = currElem.productSku;
+                const model = currElem.model;
+                const productPrice = currElem.productPrice;
+                const productSpecialPrice = currElem.productSpecialPrice;
+                const discountType = currElem.discountType;
+                const discount = currElem.discount;
+                const basePrice = currElem.basePrice;
+                const stock = currElem.stock;
+                const primaryImage = currElem.primaryImage;
+                const status = currElem.status;
+                const createdBy = currElem.createdBy;
+                
+                // Add the missing fields
+                const colorVariantSlug = currElem.colorVariantSlug;
+                const attributeSlug = currElem.attributeSlug;
+                const attributeFamilySlug = currElem.attributeFamilySlug;
+                const flipkartLink = currElem.flipkartLink;
+                const amazonLink = currElem.amazonLink;
+                const meeshoLink = currElem.meeshoLink;
+                const metaTag = currElem.metaTag;
+                const gst = currElem.gst;
+                const gstRate = currElem.gstRate;
+                
+                const categorySlug = currElem.categorySlug;
+                const category = getAllCategory.filter((item) => { return item.slug === currElem.categorySlug });
+                const categoryName = category.length !== 0 ? category[0].name : undefined;
+                const subCategorySlug = currElem.subCategorySlug;
+                const subCategory = getAllSubCategory.filter((item) => { return item.slug === currElem.subCategorySlug });
+                const subCategoryName = subCategory.length !== 0 ? subCategory[0].name : undefined;
+                const description = currElem.description;
+                const offer = currElem.offer;
+                const mulLanguageSubscript = currElem.mulLanguageSubscript;
+                
+                // Fix secondaryImage parsing
+                let secondaryImage = [];
+                try {
+                    if (currElem.secondaryImage) {
+                        secondaryImage = typeof currElem.secondaryImage === 'string' 
+                            ? JSON.parse(currElem.secondaryImage) 
+                            : currElem.secondaryImage;
+                    }
+                } catch (error) {
+                    console.log("Error parsing secondaryImage:", error);
+                    secondaryImage = [];
+                }
+                
+                const multiLanguageDesc = currElem.multiLanguageDesc;
+                const multiLanguageSpec = currElem.multiLanguageSpec;
+                const specification = currElem.specification;
+                const multiLanguageOffer = currElem.multiLanguageOffer;
+                const manufacturer = currElem.manufacturer;
+                const warrantyState = currElem.warrantyState;
+                const warranty = currElem.warranty;
+                const multiLanguageWarranty = currElem.multiLanguageWarranty;
+                const trending = currElem.trending;
+                const onsale = currElem.onsale;
+                const commingsoon = currElem.commingsoon;
+                const schoolproject = currElem.schoolproject;
+                const special = currElem.special;
+                
+                const filterProductReview = checkProductReview.filter((item) => { return item.productId == id });
+                const oneStar = filterProductReview.filter((currElem) => {
+                    return currElem.rating === "1"
+                });
+                const twoStar = filterProductReview.filter((currElem) => {
+                    return currElem.rating === "2"
+                });
+                const threeStar = filterProductReview.filter((currElem) => {
+                    return currElem.rating === "3"
+                });
+                const fourStar = filterProductReview.filter((currElem) => {
+                    return currElem.rating === "4"
+                });
+                const fiveStar = filterProductReview.filter((currElem) => {
+                    return currElem.rating === "5"
+                });
+
+                const rating = filterProductReview.length > 0 
+                    ? (1 * oneStar.length + 2 * twoStar.length + 3 * threeStar.length
+                        + 4 * fourStar.length + 5 * fiveStar.length) / filterProductReview.length
+                    : 0;
+                const review = filterProductReview.length;
+
+                return {
+                    id, slug, name, hiName, hsnCode, productSku, model, productPrice, productSpecialPrice, 
+                    discountType, description, offer, discount, basePrice, stock, primaryImage, status, 
+                    categorySlug, categoryName, subCategorySlug, subCategoryName, createdBy, subScript, 
+                    mulLanguageSubscript, secondaryImage, multiLanguageDesc, multiLanguageSpec,
+                    specification, multiLanguageOffer, manufacturer, warrantyState, warranty, 
+                    multiLanguageWarranty, trending, onsale, commingsoon, schoolproject, special, 
+                    rating, review,
+                    // Include the missing fields
+                    colorVariantSlug,
+                    attributeSlug,
+                    attributeFamilySlug,
+                    flipkartLink,
+                    amazonLink,
+                    meeshoLink,
+                    metaTag,
+                    gst,
+                    gstRate
+                };
+            });
+
+            res.status(200).json({
+                status: 200,
+                message: "All Product list fetch successfully",
+                info: filterProduct
+            });
+
+        } else {
+            res.status(400).send({
+                status: 400,
+                message: "Failed! Product not found"
+            });
+        }
+    } catch (error) {
+        console.error("Error in getProduct:", error);
         return res.status(500).json({
             status: 500,
             error: true,
             message: error.message || error
-        })
+        });
     }
     next();
-}
+};
+const updateProduct = async (req, res, next) => {
+    try {
+        const admin = req.admin;
+        
+        // Parse productData from formData
+        let productData;
+        try {
+            productData = JSON.parse(req.body.productData);
+        } catch (parseError) {
+            console.log("Error parsing productData:", parseError);
+            return res.status(300).json({
+                status: 300,
+                message: "Invalid product data format"
+            });
+        }
+
+        const {
+            slug,
+            productName, subScript, hsnCode, productSku, model, colorVarinat, category, subCategory,
+            attribute, attributeFamily, productPrice, specialPrice, gst, gstRate, discountType, discount,
+            basePrice, stock, metaTag, flipLink, amazonLink, meeshoLink, productDesc, productSpec,
+            productOffer, productManufacturer, url, warranty, trending, onsale, commingsoon, schoolproject,
+            special, productSectionValue
+        } = productData;
+
+        if (!admin) {
+            return res.status(300).send({
+                status: 300,
+                message: "Failed! You have not authorized"
+            });
+        }
+
+        if (!slug) {
+            return res.status(300).json({
+                status: 300,
+                message: "Failed! Product slug is required"
+            });
+        }
+
+        // Check if product exists
+        const existingProduct = await Product.findOne({ where: { slug: slug } });
+        if (!existingProduct) {
+            return res.status(404).json({
+                status: 404,
+                message: "Product not found"
+            });
+        }
+
+        const checkPermission = await checkRoutePermission(admin, url);
+        if (checkPermission !== true) {
+            return res.status(300).send({
+                status: 300,
+                message: "Authorization Failed!"
+            });
+        }
+
+        const warrantyState = !warranty || warranty === "<p></p>" || warranty === "<p><br></p>" ? false : true;
+
+        let parsedProductSectionValue = [];
+        if (productSectionValue) {
+            try {
+                parsedProductSectionValue =
+                    typeof productSectionValue === "string"
+                        ? JSON.parse(productSectionValue)
+                        : productSectionValue;
+            } catch (error) {
+                console.log("Error parsing productSectionValue:", error);
+                parsedProductSectionValue = [];
+            }
+        }
+
+        // Handle file upload - keep existing image if no new file uploaded
+        let primaryImage = existingProduct.primaryImage;
+        if (req.file) {
+            primaryImage = req.file.filename;
+        }
+
+        const updateInfo = {
+            name: productName,
+            subScript: subScript,
+            hsnCode: hsnCode,
+            productSku: productSku,
+            model: model,
+            colorVariantSlug: colorVarinat,
+            categorySlug: category,
+            subCategorySlug: subCategory,
+            attributeSlug: attribute,
+            attributeFamilySlug: attributeFamily,
+            productPrice: productPrice,
+            productSpecialPrice: specialPrice,
+            gst: gst,
+            gstRate: gstRate,
+            discountType: discountType,
+            discount: discount,
+            basePrice: basePrice,
+            stock: stock,
+            metaTag: metaTag,
+            primaryImage: primaryImage,
+            flipkartLink: flipLink,
+            amazonLink: amazonLink,
+            meeshoLink: meeshoLink,
+            description: productDesc,
+            specification: productSpec,
+            offer: productOffer,
+            manufacturer: productManufacturer,
+            warrantyState: warrantyState,
+            warranty: warrantyState ? warranty : null,
+            trending: trending,
+            onsale: onsale,
+            commingsoon: commingsoon,
+            schoolproject: schoolproject,
+            special: special,
+            productSectionValue: parsedProductSectionValue,
+            updatedBy: admin.role
+        };
+
+        console.log("Updating product with info:", updateInfo);
+
+        await Product.update(updateInfo, { where: { slug: slug } });
+        
+        const updatedProduct = await Product.findOne({ where: { slug: slug } });
+        
+        return res.status(200).json({
+            status: 200,
+            message: "Product updated successfully",
+            info: updatedProduct
+        });
+
+    } catch (error) {
+        console.log("General error in updateProduct:", error);
+        return res.status(500).json({
+            status: 500,
+            error: true,
+            message: error.message || "Internal server error"
+        });
+    }
+};
 
 const addSecondaryImages = async (req, res, next) => {
     try {
@@ -322,110 +625,7 @@ const deleteGalleryFile = async (req, res) => {
   }
 };
 
-const getProduct = async (req, res, next) => {
-    try {
-        const getAllProduct = await Product.findAll();
-        const getAllCategory = await Category.findAll();
-        const getAllSubCategory = await SubCategory.findAll();
-        const checkProductReview = await ProductReview.findAll();
 
-
-        if (getAllProduct.length !== 0) {
-            const filterProduct = getAllProduct.map((currElem) => {
-                const id = currElem.id;
-                const slug = currElem.slug;
-                const name = currElem.name;
-                const subScript = currElem.subScript;
-                const hiName = currElem.hiName;
-                const hsnCode = currElem.hsnCode;
-                const productSku = currElem.productSku;
-                const model = currElem.model;
-                const productPrice = currElem.productPrice;
-                const productSpecialPrice = currElem.productSpecialPrice;
-                const discountType = currElem.discountType;
-                const discount = currElem.discount;
-                const basePrice = currElem.basePrice;
-                const stock = currElem.stock;
-                const primaryImage = currElem.primaryImage;
-                const status = currElem.status;
-                const createdBy = currElem.createdBy
-                const categorySlug = currElem.categorySlug;
-                const category = getAllCategory.filter((item) => { return item.slug === currElem.categorySlug });
-                const categoryName = category.length !== 0 ? category[0].name : undefined;
-                const subCategorySlug = currElem.subCategorySlug;
-                const subCategory = getAllSubCategory.filter((item) => { return item.slug === currElem.subCategorySlug });
-                const subCategoryName = subCategory.length !== 0 ? subCategory[0].name : undefined;
-                const description = currElem.description;
-                const offer = currElem.offer;
-                const mulLanguageSubscript = currElem.mulLanguageSubscript;
-                const secondaryImage = JSON.parse(currElem.secondaryImage);
-                const multiLanguageDesc = currElem.multiLanguageDesc;
-                const multiLanguageSpec = currElem.multiLanguageSpec;
-                const specification = currElem.specification;
-                const multiLanguageOffer = currElem.multiLanguageOffer;
-                const manufacturer = currElem.manufacturer;
-                const warrantyState = currElem.warrantyState;
-                const warranty = currElem.warranty;
-                const multiLanguageWarranty = currElem.multiLanguageWarranty;
-                const trending = currElem.trending;
-                const onsale = currElem.onsale;
-                const commingsoon = currElem.commingsoon;
-                const schoolproject = currElem.schoolproject;
-                const special = currElem.special;
-                const filterProductReview = checkProductReview.filter((item) => { return item.productId == id });
-                const oneStar = filterProductReview.filter((currElem) => {
-                    return currElem.rating === "1"
-                });
-                const twoStar = filterProductReview.filter((currElem) => {
-                    return currElem.rating === "2"
-                });
-                const threeStar = filterProductReview.filter((currElem) => {
-                    return currElem.rating === "3"
-                });
-                const fourStar = filterProductReview.filter((currElem) => {
-                    return currElem.rating === "4"
-                });
-                const fiveStar = filterProductReview.filter((currElem) => {
-                    return currElem.rating === "5"
-                });
-
-                const rating = (1 * oneStar.length + 2 * twoStar.length + 3 * threeStar.length
-                    + 4 * fourStar.length + 5 * fiveStar.length) /
-                    (oneStar.length + twoStar.length + threeStar.length + fourStar.length
-                        + fiveStar.length);
-                const review = filterProductReview.length
-
-                return {
-                    id, slug, name, hiName, hsnCode, productSku, model, productPrice, productSpecialPrice, discountType, description, offer,
-                    discount, basePrice, stock, primaryImage, status, categorySlug, categoryName, subCategorySlug,
-                    subCategoryName, createdBy, subScript, mulLanguageSubscript, secondaryImage, multiLanguageDesc, multiLanguageSpec,
-                    specification, multiLanguageOffer, manufacturer, warrantyState, warranty, multiLanguageWarranty,
-                    trending, onsale, commingsoon, schoolproject, special, rating, review
-                }
-
-            });
-
-            res.status(200).json({
-                status: 200,
-                message: "All Product list fetch successfully",
-                info: filterProduct
-            })
-
-        } else {
-            res.status(400).send({
-                status: 400,
-                message: "Failed! Product not found"
-            })
-        }
-    } catch (error) {
-        return res.status(500).json({
-            status: 500,
-            error: true,
-            message: error.message || error
-        })
-    }
-    next();
-}
 
 const getProductSection = async (req, res, next) => {
     let trending = [];
@@ -493,18 +693,18 @@ const getProductDetail = async (req, res, next) => {
     next();
 }
 
-const updateProduct = async (req, res, next) => {
-    try {
+// const updateProduct = async (req, res, next) => {
+//     try {
 
-    } catch (error) {
-        return res.status(500).json({
-            status: 500,
-            error: true,
-            message: error.message || error
-        })
-    }
-    next();
-}
+//     } catch (error) {
+//         return res.status(500).json({
+//             status: 500,
+//             error: true,
+//             message: error.message || error
+//         })
+//     }
+//     next();
+// }
 
 const deleteProduct = async (req, res, next) => {
   try {

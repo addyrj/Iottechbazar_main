@@ -7,7 +7,7 @@ import ReactQuill from "react-quill";
 import "../../../../../node_modules/react-quill/dist/quill.snow.css";
 import { quilToolbarOption } from "../../Constants/Constant";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
     getAllSubCategoryData,
     getCategoryData,
@@ -25,13 +25,13 @@ import {
     getExcludeCalculator,
     getIncludeCalculator,
 } from "../../Javascript/GstCalculator";
-import { postHeaderWithToken } from "../../../../Database/Utils";
 
 const AdminEditProduct = () => {
     const location = useLocation();
     const navigate = useNavigate();
  
     const productData = location.state;
+   
 
     const selectGst = ["Select Gst", "Include", "Exclude"];
     const selectDiscountType = ["Select Discount Type", "Percentage", "Value"];
@@ -57,6 +57,7 @@ const AdminEditProduct = () => {
         { name: "Select Attribute Family" },
     ]);
     const [multipleSelect, setMultipleSelect] = useState(0);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const module = {
         toolbar: quilToolbarOption,
@@ -82,54 +83,132 @@ const AdminEditProduct = () => {
     const attributeList = getAttributeList();
 
     const [productInfo, setProductInfo] = useState({
-        productName: productData?.name || "",
-        subScript: productData?.subScript || "",
-        hsnCode: productData?.hsnCode || "",
-        productSku: productData?.productSku || "", // Fixed typo: was poductSku
-        model: productData?.model || "",
-        productPrice: productData?.productPrice || "",
-        specialPrice: productData?.productSpecialPrice || "",
-        gstRate: productData?.gstRate || "", // This might be missing from API
-        basePrice: productData?.basePrice || "",
-        discount: productData?.discount || "",
-        stock: productData?.stock || "",
-        metaTag: productData?.metaTag || "",
-        flipLink: productData?.flipLink || "",
-        amazonLink: productData?.amazonLink || "",
-        meeshoLink: productData?.meeshoLink || "",
-        productDesc: productData?.description || "",
-        productSpec: productData?.specification || "",
-        productOffer: productData?.offer || "",
-        productWarranty: productData?.warranty || "",
-        productManufacturer: productData?.manufacturer || "",
-        colorVarinat: productData?.colorVarinat || "",
-        category: productData?.categorySlug || "",
-        subCategory: productData?.subCategorySlug || "",
-        attribute: productData?.attribute || "",
-        attributeFamily: productData?.attributeFamily || "",
-        gst: productData?.gst || "", // This might be missing from API
-        discountType: productData?.discountType || "",
-        avatar: {},
+        productName: "",
+        subScript: "",
+        hsnCode: "",
+        productSku: "",
+        model: "",
+        productPrice: "",
+        specialPrice: "",
+        gstRate: "",
+        basePrice: "",
+        discount: "",
+        stock: "",
+        metaTag: "",
+        flipLink: "",
+        amazonLink: "",
+        meeshoLink: "",
+        productDesc: "",
+        productSpec: "",
+        productOffer: "",
+        productWarranty: "",
+        productManufacturer: "",
+        colorVarinat: "",
+        category: "",
+        subCategory: "",
+        attribute: "",
+        attributeFamily: "",
+        gst: "",
+        discountType: "",
+        avatar: null,
         secondaryImage: [],
-        productSectionValue: productData?.productSectionValue || [],
+        productSectionValue: [],
         url: "/admin_edit_product",
-        slug: productData?.slug || ""
+        slug: ""
     });
 
-    useEffect(() => {
-        if (productData?.categorySlug) {
-            getSubCategoryData(productData.categorySlug);
+// Initialize form data when productData and required data are available
+useEffect(() => {
+    if (productData && categoryData.length > 0 && !isInitialized) {
+     
+        
+        
+        // Transform the data to handle field name differences
+        const transformedData = {
+            ...productData,
+            // Handle the field name differences
+            productSku: productData.productSku || productData.poductSku || "", // Handle both spellings
+            flipLink: productData.flipLink || productData.flipkartLink || "",
+            colorVarinat: productData.colorVarinat || productData.colorVariantSlug || "",
+            attribute: productData.attribute || productData.attributeSlug || "",
+            attributeFamily: productData.attributeFamily || productData.attributeFamilySlug || "",
+        };
+
+        
+        // Set product section value based on flags
+        const productSectionValue = [];
+        if (transformedData.special === "true") {
+            productSectionValue.push({ name: "Special", slug: "special" });
         }
-        if (productData?.attribute) {
-            getAttributeFamily(productData.attribute);
+        if (transformedData.trending === "true") {
+            productSectionValue.push({ name: "Trending", slug: "trending" });
         }
-    }, [productData]);
+        if (transformedData.onsale === "true") {
+            productSectionValue.push({ name: "On Sale", slug: "onsale" });
+        }
+        if (transformedData.schoolproject === "true") {
+            productSectionValue.push({ name: "School Science Project", slug: "schoolproject" });
+        }
+        if (transformedData.commingsoon === "true") {
+            productSectionValue.push({ name: "Coming Soon", slug: "commingsoon" });
+        }
+
+        setProductInfo({
+            productName: transformedData?.name || "",
+            subScript: transformedData?.subScript || "",
+            hsnCode: transformedData?.hsnCode || "",
+            productSku: transformedData?.productSku || "", // Now should work with both spellings
+            model: transformedData?.model || "",
+            productPrice: transformedData?.productPrice || "",
+            specialPrice: transformedData?.productSpecialPrice || "",
+            gstRate: transformedData?.gstRate || "",
+            basePrice: transformedData?.basePrice || "",
+            discount: transformedData?.discount || "",
+            stock: transformedData?.stock || "",
+            metaTag: transformedData?.metaTag || "",
+            flipLink: transformedData?.flipLink || "", // Now should work with both field names
+            amazonLink: transformedData?.amazonLink || "",
+            meeshoLink: transformedData?.meeshoLink || "",
+            productDesc: transformedData?.description || "",
+            productSpec: transformedData?.specification || "",
+            productOffer: transformedData?.offer || "",
+            productWarranty: transformedData?.warranty || "",
+            productManufacturer: transformedData?.manufacturer || "",
+            colorVarinat: transformedData?.colorVarinat || "", // Now should work with both field names
+            category: transformedData?.categorySlug || "",
+            subCategory: transformedData?.subCategorySlug || "",
+            attribute: transformedData?.attribute || "", // Now should work with both field names
+            attributeFamily: transformedData?.attributeFamily || "", // Now should work with both field names
+            gst: transformedData?.gst || "",
+            discountType: transformedData?.discountType || "",
+            avatar: null,
+            secondaryImage: [],
+            productSectionValue: productSectionValue,
+            url: "/admin_edit_product",
+            slug: transformedData?.slug || ""
+        });
+
+        setIsInitialized(true);
+
+        // Load subcategory and attribute family data
+        if (transformedData?.categorySlug) {
+            getSubCategoryData(transformedData.categorySlug);
+        }
+        if (transformedData?.attribute) {
+            getAttributeFamily(transformedData.attribute);
+        }
+    }
+    
+}, [productData, categoryData, isInitialized]);
+
 
     const getSubCategoryData = (categorySlug) => {
-        setProductInfo({ ...productInfo, category: categorySlug });
+    
+        setProductInfo(prev => ({ ...prev, category: categorySlug }));
         const filterArray = allSubCategoryData.filter((item) => {
             return item.categorySlug === categorySlug;
         });
+     
         if (filterArray.length !== 0) {
             setSubCataData([{ name: "Select Sub-Category" }].concat(filterArray));
         } else {
@@ -138,10 +217,12 @@ const AdminEditProduct = () => {
     };
 
     const getAttributeFamily = (attributeSlug) => {
-        setProductInfo({ ...productInfo, attribute: attributeSlug });
+   
+        setProductInfo(prev => ({ ...prev, attribute: attributeSlug }));
         const filterArray = allFamilyAttribute.filter((item) => {
             return item.attributeSlug === attributeSlug;
         });
+  
         if (filterArray.length !== 0) {
             setAtriFamilyData(
                 [{ name: "Select Attribute Family" }].concat(filterArray)
@@ -265,23 +346,116 @@ const AdminEditProduct = () => {
             toast.error("Failed! Please select product section");
         } else {
             dispatch(setLoder(true));
+
+            // Create FormData for file upload
+            const formData = new FormData();
+
+            // Append the primary image file if a new one is selected
+            if (productInfo.avatar && productInfo.avatar instanceof File) {
+                formData.append('avatar', productInfo.avatar);
+            }
+
+            // Get selected product section names
+            const selectedSectionNames = productInfo.productSectionValue.map(section => section.name);
+            
+            // Set product section flags based on selected sections
+            const trending = selectedSectionNames.includes("Trending") ? "true" : "false";
+            const onsale = selectedSectionNames.includes("On Sale") ? "true" : "false";
+            const commingsoon = selectedSectionNames.includes("Coming Soon") ? "true" : "false";
+            const schoolproject = selectedSectionNames.includes("School Science Project") ? "true" : "false";
+            const special = selectedSectionNames.includes("Special") ? "true" : "false";
+
+            // Prepare product data with correct field names for backend
+            const productPayload = {
+                slug: productInfo.slug,
+                productName: productInfo.productName,
+                subScript: productInfo.subScript,
+                hsnCode: productInfo.hsnCode,
+                productSku: productInfo.productSku,
+                model: productInfo.model,
+                colorVarinat: productInfo.colorVarinat,
+                category: productInfo.category,
+                subCategory: productInfo.subCategory,
+                attribute: productInfo.attribute,
+                attributeFamily: productInfo.attributeFamily,
+                productPrice: productInfo.productPrice,
+                specialPrice: productInfo.specialPrice,
+                gst: productInfo.gst,
+                gstRate: productInfo.gstRate,
+                discountType: productInfo.discountType,
+                discount: productInfo.discount,
+                basePrice: productInfo.basePrice,
+                stock: productInfo.stock,
+                metaTag: productInfo.metaTag,
+                flipLink: productInfo.flipLink,
+                amazonLink: productInfo.amazonLink,
+                meeshoLink: productInfo.meeshoLink,
+                productDesc: productInfo.productDesc,
+                productSpec: productInfo.productSpec,
+                productOffer: productInfo.productOffer,
+                productManufacturer: productInfo.productManufacturer,
+                productWarranty: productInfo.productWarranty,
+                productSectionValue: productInfo.productSectionValue,
+                url: productInfo.url,
+                trending: trending,
+                onsale: onsale,
+                commingsoon: commingsoon,
+                schoolproject: schoolproject,
+                special: special
+            };
+
+
+            // Append product data as JSON string
+            formData.append('productData', JSON.stringify(productPayload));
+
+            // Get the token from localStorage
+            const token = localStorage.getItem("iottechAdminToken");
+
+            if (!token) {
+                toast.error("Authentication token not found. Please login again.");
+                dispatch(setLoder(false));
+                return;
+            }
+
+            // Create headers with authorization
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+            };
+
             axios
                 .post(
                     process.env.REACT_APP_BASE_URL + "updateProduct",
-                    productInfo,
-                    postHeaderWithToken
+                    formData,
+                    {
+                        headers: headers,
+                        timeout: 30000
+                    }
                 )
                 .then((response) => {
                     if (response.data.status === 200) {
                         dispatch(setLoder(false));
                         navigate("/admin_product");
                         toast.success(response.data.message);
+                    } else {
+                        dispatch(setLoder(false));
+                        toast.error(response.data.message || "Something went wrong");
                     }
                 })
                 .catch((error) => {
                     dispatch(setLoder(false));
-                    console.log("error is   ", error);
-                    toast.error(error?.response?.data?.message || error.message);
+                
+                    if (error.response?.status === 401) {
+                        toast.error("Authentication failed. Please login again.");
+                        localStorage.removeItem('iottechAdminToken');
+                        navigate('/admin_login');
+                    } else if (error.response) {
+                        toast.error(error.response.data.message || "Server error occurred");
+                    } else if (error.request) {
+                        toast.error("No response from server. Please check your connection.");
+                    } else {
+                        toast.error(error.message || "An error occurred");
+                    }
                 });
         }
     };
@@ -294,6 +468,23 @@ const AdminEditProduct = () => {
         dispatch(getColorVarinat({ navigate: navigate }));
         dispatch(getProductTitiles({ navigate: navigate }));
     }, [dispatch]);
+    
+// Get image URL for display
+const getImageUrl = () => {
+    if (productInfo.avatar && productInfo.avatar instanceof File) {
+        return URL.createObjectURL(productInfo.avatar);
+    } else if (productData?.primaryImage) {
+        // Use the same approach as AdminProduct component
+        return process.env.REACT_APP_IMAGE_URL + productData.primaryImage;
+    } else {
+        return noImage;
+    }
+};
+
+    // Add debug logging to see current state
+    useEffect(() => {
+    
+    }, [productInfo]);
 
     return (
         <Wrapper>
@@ -500,6 +691,7 @@ const AdminEditProduct = () => {
                                     value={productInfo.colorVarinat}
                                     onChange={(e) => setProductInfo({...productInfo, colorVarinat: e.target.value})}
                                 >
+                                    <option value="">Select Color...</option>
                                     {colorList?.map((currElem, index) => (
                                         <option key={index} value={currElem.slug}>
                                             {currElem.name}
@@ -520,6 +712,7 @@ const AdminEditProduct = () => {
                                             value={productInfo.category}
                                             onChange={(e) => getSubCategoryData(e.target.value)}
                                         >
+                                            <option value="">Select Category...</option>
                                             {categoryList?.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
                                                     {currElem.name}
@@ -537,6 +730,7 @@ const AdminEditProduct = () => {
                                             value={productInfo.subCategory}
                                             onChange={(e) => setProductInfo({...productInfo, subCategory: e.target.value})}
                                         >
+                                            <option value="">Select Sub-Category</option>
                                             {subCatData?.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
                                                     {currElem.name}
@@ -557,6 +751,7 @@ const AdminEditProduct = () => {
                                             value={productInfo.attribute}
                                             onChange={(e) => getAttributeFamily(e.target.value)}
                                         >
+                                            <option value="">Select Attribute...</option>
                                             {attributeList?.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
                                                     {currElem.name}
@@ -574,6 +769,7 @@ const AdminEditProduct = () => {
                                             value={productInfo.attributeFamily}
                                             onChange={(e) => setProductInfo({...productInfo, attributeFamily: e.target.value})}
                                         >
+                                            <option value="">Select Attribute Family</option>
                                             {atriFamilyData.map((currElem, index) => (
                                                 <option key={index} value={currElem.slug}>
                                                     {currElem.name}
@@ -755,7 +951,7 @@ const AdminEditProduct = () => {
                         </div>
                     </div>
 
-                    {/* Product Items Card */}
+                    {/* Product Items Card - File Input Section */}
                     <div className="card card-primary">
                         <div className="card-header">
                             <h3 className="card-title">Product Items</h3>
@@ -764,36 +960,74 @@ const AdminEditProduct = () => {
                             <div className="row">
                                 <div className="col-md-8">
                                     <div className="form-group">
-                                        <label htmlFor="primaryImage">Product Primary Image*</label>
+                                        <label htmlFor="primaryImage">Product Primary Image</label>
                                         <div className="input-group">
                                             <div className="custom-file">
                                                 <input
                                                     type="file"
                                                     className="custom-file-input"
                                                     id="primaryImage"
-                                                    name="primaryImage"
-                                                    onChange={(e) => setProductInfo({...productInfo, avatar: e.target.files[0]})}
+                                                    name="avatar"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            setProductInfo({
+                                                                ...productInfo,
+                                                                avatar: file
+                                                            });
+
+                                                            // Update the file input label
+                                                            const label = e.target.nextElementSibling;
+                                                            label.textContent = file.name;
+                                                        }
+                                                    }}
                                                 />
                                                 <label className="custom-file-label" htmlFor="primaryImage">
-                                                    Choose file
+                                                    {productInfo.avatar && productInfo.avatar.name
+                                                        ? productInfo.avatar.name
+                                                        : "Choose file"
+                                                    }
                                                 </label>
                                             </div>
                                             <div className="input-group-append">
                                                 <span className="input-group-text">Upload</span>
                                             </div>
                                         </div>
+                                        {productInfo.avatar && productInfo.avatar.name && (
+                                            <small className="form-text text-success">
+                                                File selected: {productInfo.avatar.name}
+                                            </small>
+                                        )}
+                                        <small className="form-text text-muted">
+                                            Leave empty to keep current image
+                                        </small>
                                     </div>
                                 </div>
-                                <div className="col-md-4">
-                                    <div className="form-group">
-                                        <div>
-                                            <img
-                                                src={productInfo.avatar.name ? URL.createObjectURL(productInfo.avatar) : noImage}
-                                                style={{ width: "120px", height: "80px", objectFit: "contain" }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                              <div className="col-md-4">
+    <div className="form-group">
+        <div>
+            <img
+                src={getImageUrl()}
+                style={{
+                    width: "120px",
+                    height: "80px",
+                    objectFit: "contain",
+                    border: "1px solid #ddd",
+                    borderRadius: "5px"
+                }}
+                alt="Product preview"
+                onError={(e) => {
+                 
+                    e.target.src = noImage;
+                }}
+            />
+        </div>
+        <small className="form-text text-muted">
+            {productInfo.avatar && productInfo.avatar.name ? "New preview" : "Current image"}
+        </small>
+    </div>
+</div>
                             </div>
                             
                             <div className="row">
@@ -1007,7 +1241,6 @@ const AdminEditProduct = () => {
 };
 
 const Wrapper = styled.section`
-  /* Same styles as AdminCreateProduct */
   width: 100%;
   .buttonStyle {
     width: 200px;
