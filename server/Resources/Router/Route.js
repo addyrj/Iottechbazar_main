@@ -9,7 +9,7 @@ const { addCategory, getCategory, updateCategory, deleteCategory, changeCategory
 const { generateOrder, verifyPayemnt, getAdminOrder, changeOrderStatus, getTransactionList, getOrder } = require("../Controller/CheckoutController");
 const { createColor, getColor, updateColor, deleteColor, changeColorStatus, createColorLanguage } = require("../Controller/ColorController");
 const { createEnquiry, getAllEnquiry } = require("../Controller/ContactUsController");
-const { createCoupons, getCoupons ,updateCoupon,deleteCoupon,} = require("../Controller/CouponController");
+const { createCoupons, getCoupons ,updateCoupon,deleteCoupon,changeCouponStatus, validateCoupon} = require("../Controller/CouponController");
 const { checkIp, checkDeviceOrigin, testApi, createAdminTrackLog, createUserTrackLog, getTrackLog } = require("../Controller/ExtraDataController");
 const { createSlider, getSlider,updateSlider,deleteSlider } = require("../Controller/HomeSliderConroller");
 const { createLanguage, getLanguage } = require("../Controller/LanguageController");
@@ -398,7 +398,8 @@ router.post("/updateCoupon", AdminAuth, uploadFiles.single("avatar"), updateCoup
 router.post("/deleteCoupon", AdminAuth, uploadFiles.none(), deleteCoupon)
 
 // // change status - POST
-// router.post("/changeCouponStatus", AdminAuth, uploadFiles.none(), changeCouponStatus)
+router.post("/changeCouponStatus", AdminAuth, uploadFiles.none(), changeCouponStatus)
+router.post("/validateCoupon", validateCoupon);
 
 // create/update Shipping
 router.post("/updateShipping", AdminAuth, uploadFiles.none(), addShipping)

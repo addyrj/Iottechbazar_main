@@ -364,57 +364,193 @@ const deleteCoupon = async (req, res, next) => {
         })
     }
 }
+const changeCouponStatus = async (req, res, next) => {
+    try {
+        const admin = req.admin;
+        const { id, status, url } = req.body;
 
-// const chnageCouponStatus = async (req, res, next) => {
-//     try {
-//         const admin = req.admin;
-//         const { id, status, url } = req.body;
+        if (!admin) {
+            return res.status(300).send({
+                status: 300,
+                message: "Failed! You have not authorized"
+            })
+        }
 
-//         if (!admin) {
-//             return res.status(300).send({
-//                 status: 300,
-//                 message: "Failed! You have not authorized"
-//             })
-//         }
+        const checkPermission = await checkRoutePermission(admin, url);
+        if (!checkPermission) {
+            return res.status(300).send({
+                status: 300,
+                message: "Authorization Failed!"
+            })
+        }
 
-//         const checkPermission = await checkRoutePermission(admin, url);
-//         if (!checkPermission) {
-//             return res.status(300).send({
-//                 status: 300,
-//                 message: "Authorization Failed!"
-//             })
-//         }
+        const coupon = await Coupon.findByPk(id);
+        if (!coupon) {
+            return res.status(400).send({
+                status: 400,
+                message: "Coupon not found"
+            })
+        }
 
-//         const coupon = await Coupon.findByPk(id);
-//         if (!coupon) {
-//             return res.status(400).send({
-//                 status: 400,
-//                 message: "Coupon not found"
-//             })
-//         }
+        await Coupon.update({ status: status }, { where: { id } })
+            .then(() => {
+                return res.status(200).json({
+                    status: 200,
+                    message: `Coupon ${status === "true" ? "activated" : "deactivated"} successfully`
+                })
+            })
+            .catch((error) => {
+                return res.status(300).json({
+                    status: 300,
+                    message: "Failed! Coupon status not updated",
+                    info: error
+                })
+            })
 
-//         await Coupon.update({ status: status }, { where: { id } })
-//             .then(() => {
-//                 return res.status(200).json({
-//                     status: 200,
-//                     message: `Coupon ${status === "true" ? "activated" : "deactivated"} successfully`
-//                 })
-//             })
-//             .catch((error) => {
-//                 return res.status(300).json({
-//                     status: 300,
-//                     message: "Failed! Coupon status not updated",
-//                     info: error
-//                 })
-//             })
+    } catch (error) {
+        return res.status(500).json({
+            status: 500,
+            error: true,
+            message: error.message || error
+        })
+    }
+}
+const validateCoupon = async (req, res, next) => {
+    try {
+        const { couponCode, totalAmount, productIds } = req.body;
+        
+        console.log("Received coupon validation request:", { couponCode, totalAmount, productIds });
+        
+        if (!couponCode || couponCode.trim() === "") {
+            return res.status(300).send({
+                status: 300,
+                message: "Coupon code is required"
+            })
+        }
 
-//     } catch (error) {
-//         return res.status(500).json({
-//             status: 500,
-//             error: true,
-//             message: error.message || error
-//         })
-//     }
-// }
+        const coupon = await Coupon.findOne({ 
+            where: { 
+                coupon: couponCode.trim(), 
+                status: "true" 
+            } 
+        });
+        
+        if (!coupon) {
+            return res.status(400).send({
+                status: 400,
+                message: "Invalid coupon code"
+            })
+        }
 
-module.exports = { createCoupons, getCoupons, deleteCoupon, updateCoupon,  }
+        console.log("Found coupon:", coupon.coupon, "Discount Type:", coupon.discountType);
+
+        // Check if coupon is active based on dates
+        const currentDate = new Date();
+        const startDate = new Date(coupon.startDate);
+        const expireDate = new Date(coupon.expireDate);
+
+        if (currentDate < startDate) {
+            return res.status(400).send({
+                status: 400,
+                message: "This coupon is not active yet"
+            })
+        }
+
+        if (currentDate > expireDate) {
+            return res.status(400).send({
+                status: 400,
+                message: "This coupon has expired"
+            })
+        }
+
+        // Check minimum purchase amount
+        const minAmount = parseFloat(coupon.min_purchase_amount);
+        const cartAmount = parseFloat(totalAmount);
+        
+        if (cartAmount < minAmount) {
+            return res.status(400).send({
+                status: 400,
+                message: `Minimum purchase amount should be ₹${minAmount}`
+            })
+        }
+
+        // Check product eligibility if specific products scope
+        if (coupon.scopeType === 'specific_products' && productIds && productIds.length > 0) {
+            const allowedProductIds = coupon.productIds ? JSON.parse(coupon.productIds) : [];
+            const hasEligibleProduct = productIds.some(productId => 
+                allowedProductIds.includes(productId)
+            );
+            
+            if (!hasEligibleProduct) {
+                return res.status(400).send({
+                    status: 400,
+                    message: "This coupon is not applicable for the selected products"
+                })
+            }
+        }
+
+        // Calculate discount - Handle both string values ("0", "1") and descriptive values
+        let discountAmount = 0;
+        let finalAmount = cartAmount;
+        const discountValue = parseFloat(coupon.discountValue);
+        
+        console.log("Discount calculation:", {
+            discountType: coupon.discountType,
+            discountValue: discountValue,
+            cartAmount: cartAmount
+        });
+
+        // Handle different discount type formats
+        if (coupon.discountType === 'percentage' || coupon.discountType === '1' || coupon.discountType === 1) {
+            discountAmount = (cartAmount * discountValue) / 100;
+            finalAmount = cartAmount - discountAmount;
+            console.log("Percentage discount:", discountAmount);
+        } else if (coupon.discountType === 'fixed' || coupon.discountType === '0' || coupon.discountType === 0) {
+            discountAmount = discountValue;
+            finalAmount = cartAmount - discountAmount;
+            console.log("Fixed discount:", discountAmount);
+        } else {
+            return res.status(400).send({
+                status: 400,
+                message: "Invalid discount type"
+            })
+        }
+
+        // Ensure discount doesn't make amount negative
+        if (finalAmount < 0) {
+            finalAmount = 0;
+            discountAmount = cartAmount;
+        }
+
+        console.log("Final calculation:", {
+            discountAmount: discountAmount,
+            finalAmount: finalAmount
+        });
+
+        return res.status(200).json({
+            status: 200,
+            message: "Coupon applied successfully",
+            info: {
+                couponId: coupon.id,
+                coupon: coupon.coupon,
+                discountType: coupon.discountType,
+                discountValue: coupon.discountValue,
+                discountAmount: Math.round(discountAmount * 100) / 100, // Round to 2 decimal places
+                finalAmount: Math.round(finalAmount * 100) / 100,
+                scopeType: coupon.scopeType,
+                minPurchaseAmount: coupon.min_purchase_amount
+            }
+        })
+
+    } catch (error) {
+        console.error("Coupon validation error:", error);
+        return res.status(500).json({
+            status: 500,
+            error: true,
+            message: error.message || "Internal server error"
+        })
+    }
+}
+
+module.exports = { createCoupons, getCoupons, deleteCoupon, updateCoupon, changeCouponStatus, validateCoupon }
+

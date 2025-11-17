@@ -740,6 +740,10 @@ const ProductDetail = () => {
                             {/* End .tab-content */}
                         </div>
                         {/* End .product-details-tab */}
+
+
+
+                        
                         <h2 className="title text-center mb-4">You May Also Like</h2>
                         {/* End .title text-center */}
 

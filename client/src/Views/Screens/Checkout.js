@@ -22,22 +22,38 @@ const Checkout = () => {
 
   const location = useLocation();
 
-  const { buyNowMode = false, buyNowItem = null } = location.state || {};
+  const { 
+    buyNowMode = false, 
+    buyNowItem = null,
+    appliedCoupon = null,
+    discountAmount = 0,
+    discountedTotal = null,
+    originalTotal = null,
+    couponCode = null
+  } = location.state || {};
+
   const addressList = useSelector((state) => state.DashboardReducer.userAddress);
   const userCart = useSelector((state) => state.DashboardReducer.userCart);
 
   // Use buyNowItem if in buy now mode, otherwise use cart
   const checkoutItems = buyNowMode && buyNowItem ? [buyNowItem] : userCart;
+  
+  // State to manage discount data
+  const [couponData, setCouponData] = useState({
+    appliedCoupon,
+    discountAmount,
+    discountedTotal,
+    originalTotal,
+    couponCode
+  });
+
   const [expandedSections, setExpandedSections] = useState({
     address: false,
-    // payment: false,
     payment: true,
     orderSummary: false
   });
 
   const [payState, setPayState] = useState({
-    // cod: "1",
-    // onlinePay: "0"
     cod: "0",
     onlinePay: "1"
   });
@@ -107,7 +123,25 @@ const Checkout = () => {
     }
   }, [addressList, selectedAddress]);
 
+  // Calculate totals with discount consideration
   const getTotalSellPrice = () => {
+    // If we have discounted total from cart, use it
+    if (couponData.discountedTotal !== null && couponData.discountedTotal !== undefined) {
+      return couponData.discountedTotal;
+    }
+    
+    // Otherwise calculate normally
+    let priceArray = checkoutItems.map((currELem) => currELem.cartItemtotalSellPrice);
+    return priceArray.length !== 0 ? priceArray.reduce((a, b) => a + b) : 0;
+  }
+
+  const getOriginalTotal = () => {
+    // If we have original total from cart, use it
+    if (couponData.originalTotal !== null && couponData.originalTotal !== undefined) {
+      return couponData.originalTotal;
+    }
+    
+    // Otherwise calculate normally
     let priceArray = checkoutItems.map((currELem) => currELem.cartItemtotalSellPrice);
     return priceArray.length !== 0 ? priceArray.reduce((a, b) => a + b) : 0;
   }
@@ -148,14 +182,14 @@ const Checkout = () => {
     return icons[addType] || "📍";
   }
 
-  // Update generateOrder function
+  // Update generateOrder function to use discounted total
   const generateOrder = async () => {
     if (!selectedAddress) {
       toast.error("Please select an address to continue");
       return;
     }
 
-    let totalPrice = getTotalSellPrice();
+    let totalPrice = getTotalSellPrice(); // This now includes discount if applied
     let paymentMode = payState.cod === "1" ? "0" : "1";
 
     if (isEmpty(totalPrice.toString())) {
@@ -167,8 +201,14 @@ const Checkout = () => {
         amount: totalPrice,
         paymentMode: paymentMode,
         selectedAddressId: selectedAddress?.id,
-        buyNowMode: buyNowMode, // Add this flag
-        buyNowItem: buyNowMode ? buyNowItem : null // Add buy now item
+        buyNowMode: buyNowMode,
+        buyNowItem: buyNowMode ? buyNowItem : null,
+        // Add coupon data to order
+        couponData: couponData.appliedCoupon ? {
+          couponCode: couponData.appliedCoupon.coupon,
+          discountAmount: couponData.discountAmount,
+          originalAmount: couponData.originalTotal
+        } : null
       };
 
       axios.post(process.env.REACT_APP_BASE_URL + "generateOrder", requestData, postHeaderWithToken)
@@ -192,7 +232,7 @@ const Checkout = () => {
     }
   }
 
-const paymentVerification = (data) => {
+  const paymentVerification = (data) => {
     const orderId = data.razorpay_order_id;
     const paymentId = data.razorpay_payment_id;
     const razorPaySignature = data.razorpay_signature;
@@ -201,7 +241,7 @@ const paymentVerification = (data) => {
     formData.append("orderId", orderId);
     formData.append("paymentId", paymentId);
     formData.append("rPaySignature", razorPaySignature);
-    formData.append("buyNowMode", buyNowMode); // Add this
+    formData.append("buyNowMode", buyNowMode);
     
     dispatch(setLoader(true));
     axios.post(process.env.REACT_APP_BASE_URL + "verifyPayment", formData, postHeaderWithToken)
@@ -218,7 +258,7 @@ const paymentVerification = (data) => {
         dispatch(setLoader(false));
         toast.error(error?.response?.data?.message || error.message)
       })
-}
+  }
 
   const startPayment = useCallback((data) => {
     const options = {
@@ -257,6 +297,83 @@ const paymentVerification = (data) => {
     });
     rzpay.open();
   }, [Razorpay])
+
+  // Render order summary with discount breakdown
+  const renderOrderSummary = () => {
+    const originalTotal = getOriginalTotal();
+    const finalTotal = getTotalSellPrice();
+    const hasDiscount = couponData.appliedCoupon && couponData.discountAmount > 0;
+    const shippingCost = 200;
+    const taxAmount = getGstTax();
+    const grandTotal = finalTotal + shippingCost;
+
+    return (
+      <div className="order-summary-card">
+        <h4>Order Summary</h4>
+        
+        {hasDiscount && (
+          <>
+            <div className="summary-row">
+              <span>Original Total:</span>
+              <span>₹{originalTotal.toFixed(2)}</span>
+            </div>
+            <div className="summary-row discount">
+              <span>Discount:</span>
+              <span>-₹{couponData.discountAmount.toFixed(2)}</span>
+            </div>
+            <div className="summary-divider" />
+          </>
+        )}
+        
+        <div className="summary-row">
+          <span>Subtotal:</span>
+          <span>₹{finalTotal.toFixed(2)}</span>
+        </div>
+        
+        <div className="summary-row">
+          <span>Shipping:</span>
+          <span>₹{shippingCost.toFixed(2)}</span>
+        </div>
+        
+        <div className="summary-row">
+          <span>Tax (GST):</span>
+          <span>₹{taxAmount.toFixed(2)}</span>
+        </div>
+        
+        <div className="summary-divider" />
+        
+        <div className="summary-row total">
+          <strong>Total Amount:</strong>
+          <strong>₹{grandTotal.toFixed(2)}</strong>
+        </div>
+
+        {hasDiscount && (
+          <div className="coupon-info">
+            <small className="text-success">
+              Coupon <strong>{couponData.appliedCoupon.coupon}</strong> applied
+              {couponData.appliedCoupon.discountType === 'percentage' || couponData.appliedCoupon.discountType === '1' 
+                ? ` (${couponData.appliedCoupon.discountValue}% off)`
+                : ` (₹${couponData.appliedCoupon.discountValue} off)`
+              }
+            </small>
+          </div>
+        )}
+
+        <button
+          className="btn btn-checkout"
+          onClick={generateOrder}
+          disabled={!selectedAddress}
+        >
+          <span>Place Order</span>
+          <i className="icon-long-arrow-right" />
+        </button>
+
+        {!selectedAddress && (
+          <p className="warning-text">Please select a delivery address</p>
+        )}
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (addressList.length === 0) {
@@ -491,39 +608,7 @@ const paymentVerification = (data) => {
                       </div>
                     </div>
 
-                    <div className="order-summary-card">
-                      <h4>Order Summary</h4>
-                      <div className="summary-row">
-                        <span>Subtotal:</span>
-                        <span>₹{getTotalBasePrice()}</span>
-                      </div>
-                      <div className="summary-row">
-                        <span>Shipping:</span>
-                        <span>₹200</span>
-                      </div>
-                      <div className="summary-row">
-                        <span>Tax (GST):</span>
-                        <span>₹{getGstTax()}</span>
-                      </div>
-                      <div className="summary-divider" />
-                      <div className="summary-row total">
-                        <strong>Total Amount:</strong>
-                        <strong>₹{getTotalSellPrice()}</strong>
-                      </div>
-
-                      <button
-                        className="btn btn-checkout"
-                        onClick={generateOrder}
-                        disabled={!selectedAddress}
-                      >
-                        <span>Place Order</span>
-                        <i className="icon-long-arrow-right" />
-                      </button>
-
-                      {!selectedAddress && (
-                        <p className="warning-text">Please select a delivery address</p>
-                      )}
-                    </div>
+                    {renderOrderSummary()}
                   </div>
                 </div>
               )}
@@ -537,7 +622,6 @@ const paymentVerification = (data) => {
               >
                 <div className="section-title">
                   <ShoppingCart className="section-icon" />
-                  {/* <h3>Order Items ({userCart.length})</h3> */}
                   <h3>Order Items ({checkoutItems.length})</h3>
                 </div>
                 {expandedSections.orderSummary ? <ExpandLess /> : <ExpandMore />}
@@ -607,13 +691,12 @@ const Wrapper = styled.section`
     justify-content: between;
     align-items: center;
     padding: 14px 24px;
-background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
+    background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     color: white;
     transition: all 0.3s ease;
     
     &:hover {
-   background: linear-gradient(135deg, #a6c76c 0%, #5b8c2a 100%);
-
+      background: linear-gradient(135deg, #a6c76c 0%, #5b8c2a 100%);
     }
   }
 
@@ -624,7 +707,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     
     h3 {
       margin: 0;
-      // font-size: 1.25rem;
       font-weight: 600;
     }
   }
@@ -638,13 +720,19 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     background: rgba(255, 255, 255, 0.2);
     padding: 4px 12px;
     border-radius: 20px;
-    // font-size: 0.75rem;
     margin-left: 12px;
     backdrop-filter: blur(10px);
   }
 
   .section-content {
-    padding: 24px;
+    &.collapsed {
+      padding: 16px 24px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    &.expanded {
+      padding: 24px;
+    }
   }
 
   /* Address Styles */
@@ -653,7 +741,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     padding: 40px 20px;
     
     p {
-      // color: #6c757d;
       margin-bottom: 20px;
       font-size: 1.1rem;
     }
@@ -673,6 +760,7 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     cursor: pointer;
     transition: all 0.3s ease;
     background: white;
+    position: relative;
     
     &:hover {
       border-color: #a6c76c;
@@ -683,6 +771,60 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     &.selected {
       border-color: #a6c76c;
       background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+    }
+    
+    &.preview {
+      margin-bottom: 0;
+      
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        
+        .preview-overlay {
+          opacity: 1;
+        }
+      }
+      
+      .address-actions {
+        display: none;
+      }
+    }
+  }
+
+  .preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(166, 199, 108, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    
+    .click-to-expand {
+      color: white;
+      font-weight: 600;
+    }
+  }
+
+  .empty-state.preview {
+    padding: 20px;
+    text-align: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+    
+    p {
+      margin-bottom: 16px;
+      color: #6c757d;
+    }
+    
+    .btn {
+      margin: 0 auto;
     }
   }
 
@@ -695,8 +837,7 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
 
   .address-type {
     font-weight: 600;
-    // color: #495057;
-    // font-size: 0.9rem;
+    color: #495057;
   }
 
   .address-radio {
@@ -710,13 +851,11 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
       font-weight: 600;
       color: #212529;
       margin-bottom: 4px;
-      // font-size: 1.1rem;
     }
     
     .address-contact {
       color: #6c757d;
       margin-bottom: 8px;
-      // font-size: 0.9rem;
     }
     
     .address-text {
@@ -727,7 +866,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     
     .address-pincode {
       color: #6c757d;
-      // font-size: 0.9rem;
     }
   }
 
@@ -736,7 +874,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     color: white;
     padding: 2px 8px;
     border-radius: 12px;
-    // font-size: 0.75rem;
     display: inline-block;
     margin-top: 8px;
   }
@@ -747,7 +884,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     
     .btn {
       padding: 6px 12px;
-      // font-size: 0.85rem;
       border-radius: 6px;
       transition: all 0.3s ease;
       
@@ -804,11 +940,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
       border-color: #a6c76c;
       background: #f8f9ff;
     }
-    
-    &.selected {
-      border-color: #a6c76c;
-      background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-    }
   }
 
   .payment-info {
@@ -819,13 +950,11 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     .payment-title {
       font-weight: 600;
       color: #212529;
-      // font-size: 1.1rem;
       margin-bottom: 4px;
     }
     
     .payment-desc {
       color: #6c757d;
-      // font-size: 0.9rem;
     }
   }
 
@@ -849,6 +978,11 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     margin-bottom: 12px;
     color: #495057;
     
+    &.discount {
+      color: #28a745;
+      font-weight: 500;
+    }
+    
     &.total {
       font-size: 1.2rem;
       color: #212529;
@@ -861,14 +995,21 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     margin: 16px 0;
   }
 
+  .coupon-info {
+    background: #d4edda;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    border: 1px solid #c3e6cb;
+    text-align: center;
+  }
+
   .btn-checkout {
     width: 100%;
- background: linear-gradient(135deg, #a6c76c 0%, #5b8c2a 100%);
-
+    background: linear-gradient(135deg, #a6c76c 0%, #5b8c2a 100%);
     color: white;
     border: none;
     padding: 15px 20px;
-    // font-size: 1.1rem;
     font-weight: 600;
     border-radius: 10px;
     margin-top: 20px;
@@ -890,7 +1031,6 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     color: #dc3545;
     text-align: center;
     margin-top: 12px;
-    // font-size: 0.9rem;
   }
 
   /* Order Items Styles */
@@ -957,7 +1097,7 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
     text-align: right;
   }
 
-  @media (max-width: ${({ theme }) => theme.media.mobile}) {
+  @media (max-width: 768px) {
     .section-header {
       padding: 16px 20px;
     }
@@ -989,103 +1129,23 @@ background: linear-gradient(135deg, #a6c76c 0%, #7aa33a 100%);
         text-align: left;
       }
     }
-  }
-    // ---------
-    /* Add these styles to your existing Wrapper styled component */
-
-.section-content {
-  &.collapsed {
-    padding: 16px 24px;
-    border-top: 1px solid #e9ecef;
-  }
-  
-  &.expanded {
-    padding: 24px;
-  }
-}
-
-.address-card.preview {
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 0;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     
-    .preview-overlay {
-      opacity: 1;
-    }
-  }
-  
-  .address-actions {
-    display: none;
-  }
-}
-
-.preview-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(166, 199, 108, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  
-  .click-to-expand {
-    color: white;
-    font-weight: 600;
-    // font-size: 1rem;
-  }
-}
-
-.empty-state.preview {
-  padding: 20px;
-  text-align: center;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px dashed #dee2e6;
-  
-  p {
-    margin-bottom: 16px;
-    color: #6c757d;
-  }
-  
-  .btn {
-    margin: 0 auto;
-  }
-}
-
-/* Ensure the collapsed view has proper spacing */
-.checkout-section:not(:last-child) {
-  margin-bottom: 16px;
-}
-
-/* Responsive adjustments for collapsed view */
-@media (max-width: ${({ theme }) => theme.media.mobile}) {
-  .address-card.preview {
-    .address-body {
-      .address-text {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+    .address-card.preview {
+      .address-body {
+        .address-text {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
       }
     }
+    
+    .preview-overlay .click-to-expand {
+      padding: 0 12px;
+      text-align: center;
+    }
   }
-  
-  .preview-overlay .click-to-expand {
-    // font-size: 0.9rem;
-    padding: 0 12px;
-    text-align: center;
-  }
-}
 `;
 
 export default Checkout

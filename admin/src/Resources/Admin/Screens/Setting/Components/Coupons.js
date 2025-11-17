@@ -17,7 +17,6 @@ const Coupons = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const { slug, coupon, categoryId, discountType, discountValue, minPurchaseAmount, startDate, expiryDate } = location.state || {}
   const [couponState, setCouponState] = useState(0)
 
   const coupons = useSelector((state) => state.AdminReducer.coupons);
@@ -33,20 +32,22 @@ const Coupons = () => {
 
   const [couponInfo, setCouponInfo] = useState({
     url: location.pathname,
-    coupon: coupon === undefined ? "" : coupon,
-    categoryId: categoryId === undefined ? "" : categoryId,
+    id: "",
+    coupon: "",
+    categoryId: "",
     scopeType: "all_products",
     productIds: [],
-    discountType: discountType === undefined ? "" : discountType,
-    minPurchaseAmount: minPurchaseAmount === undefined ? "" : minPurchaseAmount,
-    discountValue: discountValue === undefined ? "" : discountValue,
-    startDate: startDate === undefined ? "" : startDate,
-    expiryDate: expiryDate === undefined ? "" : expiryDate,
+    discountType: "",
+    minPurchaseAmount: "",
+    discountValue: "",
+    startDate: "",
+    expiryDate: "",
     avatar: {}
   });
 
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch all products on component mount
   useEffect(() => {
@@ -56,24 +57,52 @@ const Coupons = () => {
   // Filter products when category changes
   useEffect(() => {
     if (couponInfo.categoryId && allProducts && allProducts.length > 0) {
-      const productsInCategory = allProducts.filter(product => 
+      const productsInCategory = allProducts.filter(product =>
         product.categorySlug === couponInfo.categoryId
       );
       setFilteredProducts(productsInCategory);
+
+      // Auto-select products if in edit mode with specific products
+      if (isEditMode && couponInfo.scopeType === 'specific_products' && couponInfo.productIds.length > 0) {
+        setSelectAll(couponInfo.productIds.length === productsInCategory.length);
+      }
     } else {
       setFilteredProducts([]);
     }
-  }, [couponInfo.categoryId, allProducts]);
+  }, [couponInfo.categoryId, allProducts, isEditMode, couponInfo.scopeType, couponInfo.productIds]);
 
   // Handle category change
   const handleCategoryChange = (categorySlug) => {
-    setCouponInfo({ 
-      ...couponInfo, 
+    setCouponInfo({
+      ...couponInfo,
       categoryId: categorySlug,
       productIds: [],
       scopeType: categorySlug ? "all_products" : ""
     });
     setSelectAll(false);
+  };
+
+  // Add this function in your Coupons component
+  const handleStatusToggle = (coupon) => {
+    const newStatus = coupon.status === "true" ? "false" : "true";
+    const requestData = {
+      id: coupon.id,
+      status: newStatus,
+      url: location.pathname
+    };
+
+    axios.post(process.env.REACT_APP_BASE_URL + "changeCouponStatus", requestData, postHeaderWithToken)
+      .then((res) => {
+        if (res.data.status === 200) {
+          toast.success(res.data.message);
+          dispatch(getAdminCoupons({ navigate }));
+        } else {
+          toast.error(res.data.message);
+        }
+      })
+      .catch((error) => {
+        toast.error(error?.response?.data?.message || "Something went wrong");
+      });
   };
 
   // Handle product selection
@@ -84,13 +113,13 @@ const Coupons = () => {
     } else {
       updatedProductIds = [...couponInfo.productIds, productId];
     }
-    
-    setCouponInfo({ 
-      ...couponInfo, 
+
+    setCouponInfo({
+      ...couponInfo,
       productIds: updatedProductIds,
       scopeType: updatedProductIds.length > 0 ? "specific_products" : "all_products"
     });
-    
+
     if (filteredProducts.length > 0) {
       setSelectAll(updatedProductIds.length === filteredProducts.length);
     }
@@ -99,8 +128,8 @@ const Coupons = () => {
   // Handle select all products
   const handleSelectAll = () => {
     if (selectAll) {
-      setCouponInfo({ 
-        ...couponInfo, 
+      setCouponInfo({
+        ...couponInfo,
         productIds: [],
         scopeType: "all_products"
       });
@@ -108,8 +137,8 @@ const Coupons = () => {
     } else {
       if (filteredProducts.length > 0) {
         const allProductIds = filteredProducts.map(product => product.slug);
-        setCouponInfo({ 
-          ...couponInfo, 
+        setCouponInfo({
+          ...couponInfo,
           productIds: allProductIds,
           scopeType: "specific_products"
         });
@@ -118,7 +147,7 @@ const Coupons = () => {
     }
   };
 
-  const createCoupons = () => {
+  const handleSubmitCoupon = () => {
     if (isEmpty(couponInfo.coupon)) {
       toast.error("Failed! Coupon is empty");
       return;
@@ -136,10 +165,9 @@ const Coupons = () => {
       return;
     }
 
-    // Prepare the data exactly like your working version
+    // Prepare the data
     const requestData = {
       ...couponInfo,
-      // Ensure productIds is properly formatted for your backend
       productIds: couponInfo.productIds.length > 0 ? couponInfo.productIds : undefined
     };
 
@@ -150,22 +178,23 @@ const Coupons = () => {
       }
     });
 
-    // Use the same pattern as your working code
-    axios.post(process.env.REACT_APP_BASE_URL + "createCoupon", requestData, postHeaderWithToken)
+    const endpoint = isEditMode ? "updateCoupon" : "createCoupon";
+
+    axios.post(process.env.REACT_APP_BASE_URL + endpoint, requestData, postHeaderWithToken)
       .then((res) => {
         if (res.data.status === 200) {
           dispatch(setLoder(false));
           setCouponState(0);
+          setIsEditMode(false);
+          resetForm();
           toast.success(res?.data?.message);
-          // Refresh the coupons list
           dispatch(getAdminCoupons({ navigate: navigate }));
         }
       })
       .catch((error) => {
         console.log("Error: ", error);
         dispatch(setLoder(false));
-        
-        // Handle token expiration specifically
+
         if (error.response?.status === 401) {
           toast.error("Session expired. Please login again.");
           localStorage.removeItem("token");
@@ -174,6 +203,73 @@ const Coupons = () => {
           toast.error(error?.response?.data?.message || error.message || "Something went wrong");
         }
       });
+  };
+
+  const handleDeleteCoupon = (id) => {
+    if (!window.confirm("Are you sure you want to delete this coupon?")) {
+      return;
+    }
+
+    const requestData = {
+      id,
+      url: location.pathname
+    };
+
+    axios.post(process.env.REACT_APP_BASE_URL + "deleteCoupon", requestData, postHeaderWithToken)
+      .then((res) => {
+        if (res.data.status === 200) {
+          toast.success(res.data.message);
+          dispatch(getAdminCoupons({ navigate }));
+        } else {
+          toast.error(res.data.message);
+        }
+      })
+      .catch((error) => {
+        toast.error(error?.response?.data?.message || "Something went wrong");
+      });
+  };
+
+  const handleEditCoupon = (coupon) => {
+    setCouponInfo({
+      url: location.pathname,
+      id: coupon.id,
+      coupon: coupon.coupon,
+      categoryId: coupon.categoryId,
+      scopeType: coupon.scopeType,
+      productIds: coupon.productIds ? (Array.isArray(coupon.productIds) ? coupon.productIds : JSON.parse(coupon.productIds)) : [],
+      discountType: coupon.discountType,
+      minPurchaseAmount: coupon.min_purchase_amount,
+      discountValue: coupon.discountValue,
+      startDate: coupon.startDate,
+      expiryDate: coupon.expireDate,
+      avatar: {}
+    });
+    setIsEditMode(true);
+    setCouponState(1);
+  };
+
+  const resetForm = () => {
+    setCouponInfo({
+      url: location.pathname,
+      id: "",
+      coupon: "",
+      categoryId: "",
+      scopeType: "all_products",
+      productIds: [],
+      discountType: "",
+      minPurchaseAmount: "",
+      discountValue: "",
+      startDate: "",
+      expiryDate: "",
+      avatar: {}
+    });
+    setSelectAll(false);
+  };
+
+  const handleCancel = () => {
+    setCouponState(0);
+    setIsEditMode(false);
+    resetForm();
   };
 
   useEffect(() => {
@@ -203,300 +299,355 @@ const Coupons = () => {
                   />
                 </div>
                 :
-                <table
-                  id="datatable"
-                  className="table table-bordered table-hover table-fixed"
-                  style={{ width: "98%", margin: "0 auto 10px auto" }}>
-                  <thead>
-                    <tr>
-                      <th className="col-2">Coupon</th>
-                      <th className="col-2">Type</th>
-                      <th className="col-1">Discount</th>
-                      <th className="col-2">Min Amt</th>
-                      <th className="col-2">Scope</th>
-                      <th className="col-2">Status</th>
-                      <th className="col-1">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {coupons?.map((currElem, index) => {
-                      return (
-                        <tr key={index}>
-                          <td className="table-text-style">
-                            <div className="nameTextStyle">
-                              {currElem.coupon}
-                            </div>
-                          </td>
-                          <td className="table-text-style">
-                            {currElem.discountType === "percentage" ? "Percentage" : "Fixed"}
-                          </td>
-                          <td className="table-text-style">
-                            {currElem.discountValue}
-                            {currElem.discountType === "percentage" ? "%" : ""}
-                          </td>
-                          <td className="table-text-style text-center">
-                            ₹{currElem.min_purchase_amount}
-                          </td>
-                          <td className="table-text-style">
-                            {currElem.scopeType === 'specific_products' ? 'Specific Products' : 'All Products'}
-                          </td>
-                          <td className="table-text-style">
-                            <div className={`statusStyle ${currElem.status === "true" ? 'status-active' : 'status-inactive'}`}>
-                              {currElem.status === "true" ? "Active" : "Inactive"}
-                            </div>
-                          </td>
-                          <td className="table-text-style text-center">
-                            <i className='fa fa-edit'></i>
-                            <i className='fa fa-trash ml-4'></i>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            <table
+  id="datatable"
+  className="table table-bordered table-hover table-fixed"
+  style={{ width: "98%", margin: "0 auto 10px auto" }}>
+  <thead>
+    <tr>
+      <th className="col-2">Coupon</th>
+      <th className="col-2">Type</th>
+      <th className="col-1">Discount</th>
+      <th className="col-2">Min Amt</th>
+      <th className="col-2">Scope</th>
+      <th className="col-2">Status</th>
+      <th className="col-2">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {coupons?.map((currElem, index) => {
+      return (
+        <tr key={index}>
+          <td className="table-text-style">
+            <div className="nameTextStyle">
+              {currElem.coupon}
+            </div>
+          </td>
+          <td className="table-text-style">
+            <span className={`badge ${
+              currElem.discountType === "percentage" || currElem.discountType === "1" 
+                ? "badge-info" 
+                : "badge-success"
+            }`}>
+              {currElem.discountType === "percentage" || currElem.discountType === "1" 
+                ? "Percentage" 
+                : "Fixed"}
+            </span>
+          </td>
+          <td className="table-text-style">
+            <strong>
+              {currElem.discountValue}
+              {currElem.discountType === "percentage" || currElem.discountType === "1" ? "%" : "₹"}
+            </strong>
+          </td>
+          <td className="table-text-style text-center">
+            ₹{currElem.min_purchase_amount}
+          </td>
+          <td className="table-text-style">
+            <span className={`badge ${
+              currElem.scopeType === 'specific_products' 
+                ? 'badge-warning' 
+                : 'badge-secondary'
+            }`}>
+              {currElem.scopeType === 'specific_products' ? 'Specific Products' : 'All Products'}
+            </span>
+          </td>
+          <td
+            className="table-text-style"
+            onClick={() => handleStatusToggle(currElem)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className={`statusStyle ${currElem.status === "true" ? 'status-active' : 'status-inactive'}`}>
+              {currElem.status === "true" ? "Active" : "Inactive"}
+            </div>
+          </td>
+          <td
+            className="table-text-style text-center"
+            style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}
+          >
+            <i
+              className="fa fa-edit"
+              style={{ cursor: "pointer" }}
+              onClick={() => handleEditCoupon(currElem)}
+            />
+            <i
+              className="fa fa-trash"
+              style={{ cursor: "pointer", color: "red" }}
+              onClick={() => handleDeleteCoupon(currElem.id)}
+            />
+          </td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
               }
             </section>
-            : slug === undefined ?
-              <section className="content">
-                <div className="header_layout_from row">
-                  <p className='text-white font-weight-bold h-2 pt-2 pl-4 col-11'>Create Coupon</p>
-                  <i className='fa fa-arrow-left col-1 pt-3 text-white' style={{ cursor: "pointer" }} onClick={() => setCouponState(0)} />
-                </div>
-                <div className="body_layout_form">
-                  <form>
-                    <div className="row">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="couponTitle">Coupon Title</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="couponTitle"
-                            name="couponTitle"
-                            placeholder="Enter coupon title"
-                            value={couponInfo.coupon}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, coupon: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label>Choose Category</label>
-                          <select 
-                            className="form-control select2" 
-                            style={{ width: "100%" }}
-                            value={couponInfo.categoryId}
-                            onChange={(e) => handleCategoryChange(e.target.value)}
-                          >
-                            {catList?.map((currElem, index) => {
-                              return (
-                                <option key={index} value={currElem.slug}>{currElem.name}</option>
-                              )
-                            })}
-                          </select>
-                        </div>
+            :
+            <section className="content">
+              <div className="header_layout_from row">
+                <p className='text-white font-weight-bold h-2 pt-2 pl-4 col-11'>
+                  {isEditMode ? 'Edit Coupon' : 'Create Coupon'}
+                </p>
+                <i className='fa fa-arrow-left col-1 pt-3 text-white' style={{ cursor: "pointer" }} onClick={handleCancel} />
+              </div>
+              <div className="body_layout_form">
+                <form>
+                  <div className="row">
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label htmlFor="couponTitle">Coupon Title</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="couponTitle"
+                          name="couponTitle"
+                          placeholder="Enter coupon title"
+                          value={couponInfo.coupon}
+                          onChange={(e) => setCouponInfo({ ...couponInfo, coupon: e.target.value })}
+                        />
                       </div>
                     </div>
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label>Choose Category</label>
+                        <select
+                          className="form-control select2"
+                          style={{ width: "100%" }}
+                          value={couponInfo.categoryId}
+                          onChange={(e) => handleCategoryChange(e.target.value)}
+                        >
+                          {catList?.map((currElem, index) => {
+                            return (
+                              <option key={index} value={currElem.slug}>{currElem.name}</option>
+                            )
+                          })}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
 
-                    {/* Product Selection Section */}
-                    {couponInfo.categoryId && (
-                      <div className="row">
-                        <div className="col-12">
-                          <div className="form-group">
-                            <label>Product Selection</label>
-                            <div className="scope-selection mb-3">
-                              <div className="form-check form-check-inline">
-                                <input
-                                  className="form-check-input"
-                                  type="radio"
-                                  name="scopeType"
-                                  id="allProducts"
-                                  value="all_products"
-                                  checked={couponInfo.scopeType === "all_products"}
-                                  onChange={(e) => setCouponInfo({ ...couponInfo, scopeType: e.target.value, productIds: [] })}
-                                />
-                                <label className="form-check-label" htmlFor="allProducts">
-                                  All Products in Category
-                                </label>
-                              </div>
-                              <div className="form-check form-check-inline">
-                                <input
-                                  className="form-check-input"
-                                  type="radio"
-                                  name="scopeType"
-                                  id="specificProducts"
-                                  value="specific_products"
-                                  checked={couponInfo.scopeType === "specific_products"}
-                                  onChange={(e) => setCouponInfo({ ...couponInfo, scopeType: e.target.value })}
-                                />
-                                <label className="form-check-label" htmlFor="specificProducts">
-                                  Specific Products
-                                </label>
-                              </div>
+                  {/* Product Selection Section */}
+                  {couponInfo.categoryId && (
+                    <div className="row">
+                      <div className="col-12">
+                        <div className="form-group">
+                          <label>Product Selection</label>
+                          <div className="scope-selection mb-3">
+                            <div className="form-check form-check-inline">
+                              <input
+                                className="form-check-input"
+                                type="radio"
+                                name="scopeType"
+                                id="allProducts"
+                                value="all_products"
+                                checked={couponInfo.scopeType === "all_products"}
+                                onChange={(e) => setCouponInfo({ ...couponInfo, scopeType: e.target.value, productIds: [] })}
+                              />
+                              <label className="form-check-label" htmlFor="allProducts">
+                                All Products in Category
+                              </label>
                             </div>
+                            <div className="form-check form-check-inline">
+                              <input
+                                className="form-check-input"
+                                type="radio"
+                                name="scopeType"
+                                id="specificProducts"
+                                value="specific_products"
+                                checked={couponInfo.scopeType === "specific_products"}
+                                onChange={(e) => setCouponInfo({ ...couponInfo, scopeType: e.target.value })}
+                              />
+                              <label className="form-check-label" htmlFor="specificProducts">
+                                Specific Products
+                              </label>
+                            </div>
+                          </div>
 
-                            {couponInfo.scopeType === "specific_products" && filteredProducts.length > 0 && (
-                              <div className="product-selection-container">
-                                <div className="select-all-container mb-2">
-                                  <div className="form-check">
+                          {couponInfo.scopeType === "specific_products" && filteredProducts.length > 0 && (
+                            <div className="product-selection-container">
+                              <div className="select-all-container mb-2">
+                                <div className="form-check">
+                                  <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id="selectAllProducts"
+                                    checked={selectAll}
+                                    onChange={handleSelectAll}
+                                  />
+                                  <label className="form-check-label" htmlFor="selectAllProducts">
+                                    Select All Products ({filteredProducts.length} products available)
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div className="product-list">
+                                {filteredProducts.map((product) => (
+                                  <div key={product.slug} className="form-check product-checkbox">
                                     <input
                                       className="form-check-input"
                                       type="checkbox"
-                                      id="selectAllProducts"
-                                      checked={selectAll}
-                                      onChange={handleSelectAll}
+                                      id={`product-${product.slug}`}
+                                      checked={couponInfo.productIds.includes(product.slug)}
+                                      onChange={() => handleProductSelect(product.slug)}
                                     />
-                                    <label className="form-check-label" htmlFor="selectAllProducts">
-                                      Select All Products ({filteredProducts.length} products available)
+                                    <label className="form-check-label" htmlFor={`product-${product.slug}`}>
+                                      {product.name} - ₹{product.productPrice}
                                     </label>
                                   </div>
-                                </div>
-                                
-                                <div className="product-list">
-                                  {filteredProducts.map((product) => (
-                                    <div key={product.slug} className="form-check product-checkbox">
-                                      <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        id={`product-${product.slug}`}
-                                        checked={couponInfo.productIds.includes(product.slug)}
-                                        onChange={() => handleProductSelect(product.slug)}
-                                      />
-                                      <label className="form-check-label" htmlFor={`product-${product.slug}`}>
-                                        {product.name} - ₹{product.productPrice}
-                                      </label>
-                                    </div>
-                                  ))}
-                                </div>
-                                
-                                {couponInfo.productIds.length > 0 && (
-                                  <div className="selected-count mt-2">
-                                    <small className="text-muted">
-                                      {couponInfo.productIds.length} product(s) selected
-                                    </small>
-                                  </div>
-                                )}
+                                ))}
                               </div>
-                            )}
+
+                              {couponInfo.productIds.length > 0 && (
+                                <div className="selected-count mt-2">
+                                  <small className="text-muted">
+                                    {couponInfo.productIds.length} product(s) selected
+                                  </small>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="row">
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label>Discount Type</label>
+                        <select
+                          className="form-control select2"
+                          style={{ width: "100%" }}
+                          value={couponInfo.discountType}
+                          onChange={(e) => setCouponInfo({ ...couponInfo, discountType: e.target.value })}
+                        >
+                          {discountTyp?.map((currElem, index) => {
+                            return (
+                              <option key={index} value={currElem.value}>{currElem.title}</option>
+                            )
+                          })}
+                        </select>
+                      </div>
+                    </div>
+                <div className="col-sm-6">
+  <div className="form-group">
+    <label htmlFor="minPurchaseAmt">Min Purchase Amount</label>
+    <input
+      type="number"
+      className="form-control"
+      id="minPurchaseAmt"
+      name='minPurchaseAmt'
+      placeholder="Enter Minimum Purchase Amount"
+      min="0"
+      step="1"
+      value={couponInfo.minPurchaseAmount}
+      onChange={(e) => setCouponInfo({ ...couponInfo, minPurchaseAmount: e.target.value })}
+    />
+  </div>
+</div>
+                  </div>
+
+                  <div className="row">
+
+
+<div className="col-sm-6">
+  <div className="form-group">
+    <label htmlFor="discountValue">Discount Value</label>
+    <input
+      type="number"
+      className="form-control"
+      id="discountValue"
+      name="discountValue"
+      placeholder={
+        couponInfo.discountType === "percentage" 
+          ? "Enter percentage value" 
+          : "Enter fixed amount"
+      }
+      min="0"
+      step={couponInfo.discountType === "percentage" ? "0.01" : "1"}
+      max={couponInfo.discountType === "percentage" ? "100" : ""}
+      value={couponInfo.discountValue}
+      onChange={(e) => {
+        let value = e.target.value;
+        // If percentage, ensure it doesn't exceed 100
+        if (couponInfo.discountType === "percentage" && parseFloat(value) > 100) {
+          value = "100";
+        }
+        setCouponInfo({ ...couponInfo, discountValue: value });
+      }}
+    />
+    {couponInfo.discountType === "percentage" && (
+      <small className="text-muted">Enter value between 0-100%</small>
+    )}
+  </div>
+</div>
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label htmlFor="exampleInputFile">Coupon Image</label>
+                        <div className="input-group">
+                          <div className="custom-file">
+                            <input
+                              type="file"
+                              className="custom-file-input"
+                              id="exampleInputFile"
+                              onChange={(e) => setCouponInfo({ ...couponInfo, avatar: e.target.files[0] })}
+                            />
+                            <label
+                              className="custom-file-label"
+                              htmlFor="exampleInputFile"
+                            >
+                              {couponInfo.avatar && couponInfo.avatar.name ? couponInfo.avatar.name : "Choose file"}
+                            </label>
+                          </div>
+                          <div className="input-group-append">
+                            <span className="input-group-text">Upload</span>
                           </div>
                         </div>
                       </div>
-                    )}
+                    </div>
+                  </div>
 
-                    <div className="row">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label>Discount Type</label>
-                          <select 
-                            className="form-control select2" 
-                            style={{ width: "100%" }}
-                            value={couponInfo.discountType}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, discountType: e.target.value })}
-                          >
-                            {discountTyp?.map((currElem, index) => {
-                              return (
-                                <option key={index} value={currElem.value}>{currElem.title}</option>
-                              )
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="minPurchaseAmt">Min Purchase Amount</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="minPurchaseAmt"
-                            name='minPurchaseAmt'
-                            placeholder="Enter Minimum Purchase Amount"
-                            value={couponInfo.minPurchaseAmount}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, minPurchaseAmount: e.target.value })}
-                          />
-                        </div>
+                  <div className="row">
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label htmlFor="startDate">Start Date</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          id="startDate"
+                          name="startDate"
+                          value={couponInfo.startDate}
+                          onChange={(e) => setCouponInfo({ ...couponInfo, startDate: e.target.value })}
+                        />
                       </div>
                     </div>
-
-                    <div className="row">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="discountValue">Discount Value</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="discountValue"
-                            name="discountValue"
-                            placeholder="Enter discount value"
-                            value={couponInfo.discountValue}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, discountValue: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="exampleInputFile">Coupon Image</label>
-                          <div className="input-group">
-                            <div className="custom-file">
-                              <input
-                                type="file"
-                                className="custom-file-input"
-                                id="exampleInputFile"
-                                onChange={(e) => setCouponInfo({ ...couponInfo, avatar: e.target.files[0] })}
-                              />
-                              <label
-                                className="custom-file-label"
-                                htmlFor="exampleInputFile"
-                              >
-                                {couponInfo.avatar && couponInfo.avatar.name ? couponInfo.avatar.name : "Choose file"}
-                              </label>
-                            </div>
-                            <div className="input-group-append">
-                              <span className="input-group-text">Upload</span>
-                            </div>
-                          </div>
-                        </div>
+                    <div className="col-sm-6">
+                      <div className="form-group">
+                        <label htmlFor="expiryDate">Expiry Date</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          id="expiryDate"
+                          name='expiryDate'
+                          value={couponInfo.expiryDate}
+                          onChange={(e) => setCouponInfo({ ...couponInfo, expiryDate: e.target.value })}
+                        />
                       </div>
                     </div>
+                  </div>
 
-                    <div className="row">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="startDate">Start Date</label>
-                          <input
-                            type="date"
-                            className="form-control"
-                            id="startDate"
-                            name="startDate"
-                            value={couponInfo.startDate}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, startDate: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <label htmlFor="expiryDate">Expiry Date</label>
-                          <input
-                            type="date"
-                            className="form-control"
-                            id="expiryDate"
-                            name='expiryDate'
-                            value={couponInfo.expiryDate}
-                            onChange={(e) => setCouponInfo({ ...couponInfo, expiryDate: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button type="button" className="buttonStyle mb-4 float-right" onClick={createCoupons}>
-                      Create Coupon
+                  <div className="d-flex justify-content-between">
+                    <button type="button" className="buttonStyle mb-4 btn-secondary" onClick={handleCancel}>
+                      Cancel
                     </button>
-                  </form>
-                </div>
-              </section>
-              :
-              <section className="content">
-                {/* Edit section remains the same */}
-              </section>
+                    <button type="button" className="buttonStyle mb-4" onClick={handleSubmitCoupon}>
+                      {isEditMode ? 'Update Coupon' : 'Create Coupon'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
           }
         </div>
       </main>
@@ -504,6 +655,7 @@ const Coupons = () => {
   )
 }
 
+// Your styled components remain the same...
 const Wrapper = styled.section`
   .header_layout{
     padding: 15px 0px 5px 20px;
@@ -531,6 +683,14 @@ const Wrapper = styled.section`
         color: black;
         cursor: pointer;
         transform: scale(0.96);
+      }
+      &.btn-secondary {
+        background-color: #6c757d;
+        &:hover {
+          background-color: white;
+          border: #6c757d 1px solid;
+          color: black;
+        }
       }
     }
   .table-text-style {

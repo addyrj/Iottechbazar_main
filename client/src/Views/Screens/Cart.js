@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/img-redundant-alt */
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import headerBg from "../../Assets/images/page-header-bg.jpg"
 import styled from 'styled-components'
 import { useDispatch, useSelector } from "react-redux"
@@ -17,6 +17,11 @@ const Cart = () => {
     const navigate = useNavigate();
     const userCart = useSelector((state) => state.DashboardReducer.userCart);
     const updateCartItemList = useSelector((state) => state.ConstantReducer.updateCartItemList);
+
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [isApplying, setIsApplying] = useState(false);
 
     const updateCartItem = () => {
         if (updateCartItemList.length === 0) {
@@ -40,6 +45,65 @@ const Cart = () => {
         }
     }
 
+    const handleApplyCoupon = async (e) => {
+        e.preventDefault();
+
+        if (!couponCode.trim()) {
+            toast.error("Please enter a coupon code");
+            return;
+        }
+
+        if (userCart.length === 0) {
+            toast.error("Your cart is empty");
+            return;
+        }
+
+        setIsApplying(true);
+        const productIds = userCart.map(item => item.productSlug);
+        const totalAmount = getTotalSellPrice();
+
+        const requestData = {
+            couponCode: couponCode.trim(),
+            totalAmount: totalAmount,
+            productIds: productIds
+        };
+
+        try {
+            // Use JSON headers instead of postHeaderWithToken
+            const token = localStorage.getItem('token'); // adjust based on how you store token
+            const response = await axios.post(
+                process.env.REACT_APP_BASE_URL + "validateCoupon",
+                requestData,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (response.data.status === 200) {
+                setAppliedCoupon(response.data.info);
+                setDiscountAmount(response.data.info.discountAmount);
+                toast.success(response.data.message);
+            }
+        } catch (error) {
+            console.error("Coupon application error:", error);
+            setAppliedCoupon(null);
+            setDiscountAmount(0);
+            toast.error(error?.response?.data?.message || "Failed to apply coupon");
+        } finally {
+            setIsApplying(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponCode("");
+        toast.success("Coupon removed successfully");
+    };
+
     const removeCartItem = (id, slug, count) => {
         if (isEmpty(id.toString()) || isEmpty(slug)) {
             toast.error("Failed! Product not found")
@@ -56,6 +120,10 @@ const Cart = () => {
                     if (res.data.status === 200) {
                         dispatch(setLoader(false));
                         toast.success(res.data.message);
+                        // Remove coupon if cart items change
+                        if (appliedCoupon) {
+                            handleRemoveCoupon();
+                        }
                     }
                 })
                 .catch((error) => {
@@ -141,6 +209,26 @@ const Cart = () => {
         }
     }
 
+    const getFinalAmount = () => {
+        const totalSellPrice = getTotalSellPrice();
+        const final = totalSellPrice - discountAmount;
+        return final > 0 ? final : 0;
+    }
+
+    const getDiscountText = () => {
+        if (!appliedCoupon) return "";
+
+        const discountType = appliedCoupon.discountType;
+        const discountValue = appliedCoupon.discountValue;
+
+        if (discountType === 'percentage' || discountType === '1') {
+            return `${discountValue}% off`;
+        } else if (discountType === 'fixed' || discountType === '0') {
+            return `₹${discountValue} off`;
+        }
+        return "Discount applied";
+    }
+
     useEffect(() => {
         dispatch(checkLoginSession({ navigate: navigate }))
         dispatch(getUserCart())
@@ -158,9 +246,8 @@ const Cart = () => {
                             Shopping Cart<span>Shop</span>
                         </h1>
                     </div>
-                    {/* End .container */}
                 </div>
-                {/* End .page-header */}
+
                 <nav aria-label="breadcrumb" className="breadcrumb-nav">
                     <div className="container">
                         <ol className="breadcrumb">
@@ -175,9 +262,8 @@ const Cart = () => {
                             </li>
                         </ol>
                     </div>
-                    {/* End .container */}
                 </nav>
-                {/* End .breadcrumb-nav */}
+
                 <div className="page-content">
                     <div className="cart">
                         <div className="container">
@@ -200,72 +286,86 @@ const Cart = () => {
                                                         <CartItems key={item.id} {...item} />
                                                     )
                                                 })
-                                                : <div>No Data Found</div>}
+                                                : <tr><td colSpan="5" className="text-center">Your cart is empty</td></tr>}
                                         </tbody>
                                     </table>
-                                    {/* End .table table-wishlist */}
+
                                     <div className="cart-bottom">
                                         <div className="cart-discount">
-                                            <form action="#">
+                                            <form onSubmit={handleApplyCoupon}>
                                                 <div className="input-group">
                                                     <input
                                                         type="text"
                                                         className="form-control"
-                                                        required=""
-                                                        placeholder="coupon code"
+                                                        required
+                                                        placeholder="Enter coupon code"
+                                                        value={couponCode}
+                                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                                        disabled={appliedCoupon !== null || isApplying}
                                                     />
                                                     <div className="input-group-append">
-                                                        <button
-                                                            className="btn btn-outline-primary-2"
-                                                            type="submit"
-                                                        >
-                                                            <i className="icon-long-arrow-right" />
-                                                        </button>
+                                                        {appliedCoupon ? (
+                                                            <button
+                                                                className="btn btn-outline-danger"
+                                                                type="button"
+                                                                onClick={handleRemoveCoupon}
+                                                                disabled={isApplying}
+                                                            >
+                                                                <i className="icon-close" />
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                className="btn btn-outline-primary-2"
+                                                                type="submit"
+                                                                disabled={isApplying || !couponCode.trim()}
+                                                            >
+                                                                {isApplying ? (
+                                                                    <i className="icon-loading spinner" />
+                                                                ) : (
+                                                                    <i className="icon-long-arrow-right" />
+                                                                )}
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    {/* .End .input-group-append */}
                                                 </div>
-                                                {/* End .input-group */}
                                             </form>
+                                            {appliedCoupon && (
+                                                <div className="coupon-applied mt-2">
+                                                    <small className="text-success">
+                                                        <strong>{appliedCoupon.coupon}</strong> applied!
+                                                        {getDiscountText()} - ₹{discountAmount.toFixed(2)}
+                                                    </small>
+                                                </div>
+                                            )}
                                         </div>
-                                        {/* End .cart-discount */}
+
                                         <a className="btn btn-outline-dark-2 cursor-pointer" onClick={() => updateCartItem()}>
                                             <span>UPDATE CART</span>
                                             <i className="icon-refresh" />
                                         </a>
                                     </div>
-                                    {/* End .cart-bottom */}
                                 </div>
-                                {/* End .col-lg-9 */}
+
                                 <aside className="col-lg-3">
                                     <div className="summary summary-cart">
                                         <h3 className="summary-title">Cart Total</h3>
-                                        {/* End .summary-title */}
                                         <table className="table table-summary">
                                             <tbody>
-                                                {/* End .summary-subtotal */}
+                                                <tr className="summary-subtotal">
+                                                    <td>Subtotal:</td>
+                                                    <td>₹{getTotalSellPrice().toFixed(2)}</td>
+                                                </tr>
+
+                                                {appliedCoupon && (
+                                                    <tr className="summary-discount">
+                                                        <td>Discount:</td>
+                                                        <td>-₹{discountAmount.toFixed(2)}</td>
+                                                    </tr>
+                                                )}
+
                                                 <tr className="summary-shipping">
                                                     <td>Shipping:</td>
                                                     <td>&nbsp;</td>
-                                                </tr>
-                                                <tr className="summary-shipping-row">
-                                                    <td>
-                                                        <div className="custom-control custom-radio">
-                                                            <input
-                                                                type="radio"
-                                                                id="standart-shipping"
-                                                                name="shipping"
-                                                                className="custom-control-input"
-                                                            />
-                                                            <label
-                                                                className="custom-control-label"
-                                                                htmlFor="standart-shipping"
-                                                            >
-                                                                Total Base Price:
-                                                            </label>
-                                                        </div>
-                                                        {/* End .custom-control */}
-                                                    </td>
-                                                    <td>₹{getTotalBasePrice()}</td>
                                                 </tr>
 
                                                 <tr className="summary-shipping-row">
@@ -273,43 +373,19 @@ const Cart = () => {
                                                         <div className="custom-control custom-radio">
                                                             <input
                                                                 type="radio"
-                                                                id="free-shipping"
-                                                                name="shipping"
-                                                                className="custom-control-input"
-                                                            />
-                                                            <label
-                                                                className="custom-control-label"
-                                                                htmlFor="free-shipping"
-                                                            >
-                                                                Shipping
-                                                            </label>
-                                                        </div>
-                                                        {/* End .custom-control */}
-                                                    </td>
-                                                    <td>₹{"200"}</td>
-                                                </tr>
-                                                {/* End .summary-shipping-row */}
-                                                <tr className="summary-shipping-row">
-                                                    <td>
-                                                        <div className="custom-control custom-radio">
-                                                            <input
-                                                                type="radio"
                                                                 id="standart-shipping"
                                                                 name="shipping"
                                                                 className="custom-control-input"
+                                                                defaultChecked
                                                             />
-                                                            <label
-                                                                className="custom-control-label"
-                                                                htmlFor="standart-shipping"
-                                                            >
-                                                                Gst Tax:
+                                                            <label className="custom-control-label" htmlFor="standart-shipping">
+                                                                Standard Shipping
                                                             </label>
                                                         </div>
-                                                        {/* End .custom-control */}
                                                     </td>
-                                                    <td>₹{getGstTax()}</td>
+                                                    <td>₹200.00</td>
                                                 </tr>
-                                                {/* End .summary-shipping-row */}
+
                                                 <tr className="summary-shipping-row">
                                                     <td>
                                                         <div className="custom-control custom-radio">
@@ -319,63 +395,50 @@ const Cart = () => {
                                                                 name="shipping"
                                                                 className="custom-control-input"
                                                             />
-                                                            <label
-                                                                className="custom-control-label"
-                                                                htmlFor="express-shipping"
-                                                            >
-                                                                Total Price With Tax:
+                                                            <label className="custom-control-label" htmlFor="express-shipping">
+                                                                Express Shipping
                                                             </label>
                                                         </div>
-                                                        {/* End .custom-control */}
                                                     </td>
-                                                    <td>₹{getTotalPrice()}</td>
+                                                    <td>₹500.00</td>
                                                 </tr>
-                                                {/* End .summary-shipping-row */}
-                                                <tr className="summary-shipping-estimate">
-                                                    <td>
-                                                        Estimate for Your Country
-                                                        <br /> <NavLink to="/profile" state={{ referPage: "/cart" }}>Change address</NavLink>
-                                                    </td>
-                                                    <td>&nbsp;</td>
-                                                </tr>
-                                                {/* End .summary-shipping-estimate */}
+
                                                 <tr className="summary-total">
-                                                    <td>Total Sell Price:</td>
-                                                    <td>₹{getTotalSellPrice()}</td>
+                                                    <td>Total:</td>
+                                                    <td>₹{getFinalAmount().toFixed(2)}</td>
                                                 </tr>
-                                                {/* End .summary-total */}
                                             </tbody>
                                         </table>
-                                        {/* End .table table-summary */}
+
+
+
                                         <NavLink
                                             to="/checkout"
                                             className="btn btn-outline-primary-2 btn-order btn-block"
+                                            state={{
+                                                appliedCoupon,
+                                                discountAmount,
+                                                couponCode: appliedCoupon?.coupon,
+                                                discountedTotal: getFinalAmount(), // Add this line
+                                                originalTotal: getTotalSellPrice(), // Add this line
+                                                cartItems: userCart // Pass cart items for reference
+                                            }}
                                         >
                                             PROCEED TO CHECKOUT
                                         </NavLink>
-
                                     </div>
-                                    {/* End .summary */}
-                                    <NavLink to={"/products"}
-                                        className="btn btn-outline-dark-2 btn-block mb-3"
-                                    >
+
+                                    <NavLink to={"/products"} className="btn btn-outline-dark-2 btn-block mb-3">
                                         <span>CONTINUE SHOPPING</span>
                                         <i className="icon-refresh" />
                                     </NavLink>
                                 </aside>
-                                {/* End .col-lg-3 */}
                             </div>
-                            {/* End .row */}
                         </div>
-                        {/* End .container */}
                     </div>
-                    {/* End .cart */}
                 </div>
-                {/* End .page-content */}
             </main>
-            {/* End .main */}
         </Wrapper>
-
     )
 }
 
@@ -395,6 +458,27 @@ const Wrapper = styled.section`
     border: 1px solid #ebebeb;
     border-radius: 0;
     box-shadow: none;
+  }
+  
+  .coupon-applied {
+    background-color: #d4edda;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #c3e6cb;
+  }
+  
+  .summary-discount {
+    color: #28a745;
+    font-weight: bold;
+  }
+  
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 export default Cart
