@@ -42,7 +42,10 @@ import { useLocation } from "react-router-dom";
 import isEmpty from "lodash.isempty";
 import toast from "react-hot-toast";
 import { postHeaderWithToken } from "../../Database/ApiHeader";
+// Add this import with your existing imports
+import { proSecTab } from "../../Utils/CustomList";
 import Review from "../Components/Review";
+import ProductGridCrousel from "../Components/ProductGridCrousel";
 
 const HtmlToReactParser = require("html-to-react").Parser;
 
@@ -72,6 +75,7 @@ const ProductDetail = () => {
     const location = useLocation();
     const [count, setCount] = useState(1);
     const [value, setValue] = React.useState(1);
+    const [tab1, setTab1] = useState(1); // Add this line for top categories tab
 
     const [ratingValue, setRatingValue] = useState(0);
     const [reviewValue, setReviewValue] = useState("");
@@ -79,7 +83,19 @@ const ProductDetail = () => {
 
     const ratingReview = useSelector((state) => state.DashboardReducer.ratingReview)
     const averageRating = useSelector((state) => state.DashboardReducer.averageRating)
-        const navigate = useNavigate();
+    const navigate = useNavigate();
+
+    // // Add tab configuration
+    // const proCatHeaderTab = [
+    //     { id: 1, title: "All" },
+    //     { id: 2, title: "Furniture" },
+    //     { id: 3, title: "Decor" }
+    // ];
+
+    // Add tab handler function
+    const handleChangeTab1 = (event, newValue) => {
+        setTab1(newValue);
+    };
 
     const {
         primaryImage,
@@ -296,6 +312,7 @@ const ProductDetail = () => {
     useEffect(() => {
         dispatch(getProductRetingReview({ productId: id, productSlug: slug }))
     }, [dispatch, location.pathname]);
+    
     return (
         <Wrapper>
             <main className="main">
@@ -371,8 +388,7 @@ const ProductDetail = () => {
                                 <div className="col-md-6">
                                     <ProductGallery
                                         primaryImage={primaryImage}
-                                        // secondaryImage={secondaryImage}
-                                         slug={slug}
+                                        slug={slug}
                                     />
                                 </div>
                                 {/* End .col-md-6 */}
@@ -741,9 +757,93 @@ const ProductDetail = () => {
                         </div>
                         {/* End .product-details-tab */}
 
+                        {/* NEW: Top Categories Section */}
+                        <div className="container">
+                            <div className="heading heading-center mb-3">
+                                <h2 className="title">Similar Products</h2>
+                                {/* End .title */}
+                                <TabContext value={tab1}>
+                                    <Box className="nav nav-pills nav-border-anim nav-big justify-content-center mb-3">
+                                        <TabList
+                                            indicatorColor="primary"
+                                            textColor="primary"
+                                            onChange={handleChangeTab1}
+                                            aria-label="lab API tabs example"
+                                        >
+                                            {proSecTab.map((item, index) => {
+                                                return (
+                                                    <Tab
+                                                        key={index}
+                                                        sx={tabStyle}
+                                                        label={item.title}
+                                                        value={item.id}
+                                                    />
+                                                );
+                                            })}
+                                        </TabList>
+                                    </Box>
+                                    <div className="container-fluid">
+                                        <Box className="tab-content tab-content-carousel">
+                                            <div
+                                                className="product-swiper-button-prev mobileNone"
+                                                style={{ color: "#a6c76c" }}
+                                            >
+                                                <i
+                                                    className="fa-solid fa-chevron-left text-white"
+                                                    style={{ fontSize: "25px" }}
+                                                />
+                                            </div>
 
+                                            <div
+                                                className="product-swiper-button-next mobileNone"
+                                                style={{ color: "#a6c76c" }}
+                                            >
+                                                <i
+                                                    className="fa-solid fa-chevron-right text-white"
+                                                    style={{ fontSize: "25px" }}
+                                                />
+                                            </div>
+                                            <TabPanel
+                                                sx={{ padding: "20px", lineHeight: "2" }}
+                                                className={
+                                                    tab1 === 1
+                                                        ? "tab-pane p-0 fade show active"
+                                                        : "tab-pane p-0 fade"
+                                                }
+                                                value={tab1}
+                                            >
+                                                {/* You'll need to pass appropriate products data here */}
+                                                <ProductGridCrousel allProduct={[]} tab1={tab1} />
+                                            </TabPanel>
+                                            <TabPanel
+                                                sx={{ padding: "20px", lineHeight: "2" }}
+                                                className={
+                                                    tab1 === 2
+                                                        ? "tab-pane p-0 fade show active"
+                                                        : "tab-pane p-0 fade"
+                                                }
+                                                value={tab1}
+                                            >
+                                                <ProductGridCrousel allProduct={[]} tab1={tab1} />
+                                            </TabPanel>
+                                            <TabPanel
+                                                sx={{ padding: "20px", lineHeight: "2" }}
+                                                className={
+                                                    tab1 === 3
+                                                        ? "tab-pane p-0 fade show active"
+                                                        : "tab-pane p-0 fade"
+                                                }
+                                                value={tab1}
+                                            >
+                                                <ProductGridCrousel allProduct={[]} tab1={tab1} />
+                                            </TabPanel>
+                                        </Box>
+                                    </div>
+                                </TabContext>
+                            </div>
+                        </div>
 
-                        
+                        {/* EXISTING: You May Also Like Section */}
                         <h2 className="title text-center mb-4">You May Also Like</h2>
                         {/* End .title text-center */}
 
@@ -1196,6 +1296,45 @@ const Wrapper = styled.section`
     border-radius: 0;
     transition: all 0.3s;
     box-shadow: none;
+  }
+
+  /* Add these styles for the top categories section */
+  .product-swiper-button-prev {
+    position: absolute;
+    width: 50px;
+    height: 250px;
+    background-color: #a6c76c;
+    display: flex;
+    top: 35%;
+    z-index: 999;
+    left: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .product-swiper-button-next {
+    position: absolute;
+    width: 50px;
+    height: 250px;
+    background-color: #a6c76c;
+    display: flex;
+    top: 35%;
+    z-index: 999;
+    right: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobileNone {
+    /* This class will handle mobile visibility */
+  }
+
+  @media (max-width: ${({ theme }) => theme.media.mobile}) {
+    .mobileNone {
+      display: none;
+    }
   }
 
   .buttonStyle {

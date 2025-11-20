@@ -181,11 +181,29 @@ export const proCatHeaderTab = [
 export const proSecTab = [
     {
         id: 1,
-        title: "Scgool Science Projects"
+        title: "School Science Projects"
     },
     {
         id: 2,
         title: "Specials"
+    },
+     {
+        id: 3,
+        title: "Similer product"
+    },
+    {
+        id: 4,
+        title: "You may like"
+    }
+]
+export const proSecTab1 = [
+    {
+        id: 1,
+        title: "Similer product"
+    },
+    {
+        id: 2,
+        title: "You may like"
     }
 ]
 
