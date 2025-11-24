@@ -90,66 +90,102 @@ const addCart = async (req, res, next) => {
 const getAdminCart = async (req, res, next) => {
     try {
         const admin = req.admin;
+
+        // Admin auth check
         if (!admin) {
-            return res.status(300).send({
+            return res.status(300).json({
                 status: 300,
                 message: "Failed! You have not authorized"
-            })
-        } else {
-            const checkCart = await Cart.findAll();
-            const checkUser = await User.findAll();
-            if (checkUser.length !== 0) {
-                if (checkCart.length !== 0) {
-                    const checkProduct = await Product.findAll();
-                    const filterCartItem = checkCart.map((item, index) => {
-                        const user = checkUser.filter((currElem) => { return currElem.slug === item.userSlug })
-                        const id = item.id;
-                        const userSlug = user[0].slug;
-                        const userName = user[0].name;
-                        const userEmail = user[0].email;
-                        const userContact = user[0].contact;
-                        const productId = item.productId;
-                        const productSlug = item.productSlug;
-                        const cartCount = item.cartCount;
-                        const filterProduct = checkProduct.filter((currElem) => { return currElem.slug === productSlug });
-                        const cartImage = filterProduct[0].primaryImage;
-                        const cartPrice = filterProduct[0].productPrice;
-                        const cartName = filterProduct[0].name;
-                        const createdAt = item.createdAt;
-                        const cartSellPrice = filterProduct[0].productSpecialPrice;
-                        const cartItemtotalPrice = parseInt(filterProduct[0].productPrice) * parseInt(cartCount);
-                        const cartItemtotalSellPrice = parseInt(filterProduct[0].productSpecialPrice) * parseInt(cartCount)
-
-                        return { id, userSlug, userName, userEmail, userContact, productId, cartName, cartCount, cartImage, cartPrice, cartSellPrice, cartItemtotalPrice, cartItemtotalSellPrice, filterProduct, createdAt }
-
-                    });
-
-                    res.status(200).json({
-                        status: 200,
-                        message: "Cart data fetch successfully",
-                        info: filterCartItem
-                    })
-                } else {
-                    return res.status(400).json({
-                        status: 400,
-                        message: "Failed! Cart is empty"
-                    })
-                }
-            } else {
-                return res.status(400).josn({
-                    status: 400,
-                    message: "Failed! User not found"
-                })
-            }
+            });
         }
+
+        // Fetch all users, carts, products
+        const checkCart = await Cart.findAll();
+        const checkUser = await User.findAll();
+        const checkProduct = await Product.findAll();
+
+        if (checkUser.length === 0) {
+            return res.status(400).json({
+                status: 400,
+                message: "Failed! User not found"
+            });
+        }
+
+        if (checkCart.length === 0) {
+            return res.status(400).json({
+                status: 400,
+                message: "Failed! Cart is empty"
+            });
+        }
+
+        const filterCartItem = checkCart.map((item) => {
+
+            // ---- Find User ----
+            const user = checkUser.find(u => u.slug === item.userSlug);
+
+            if (!user) {
+                return {
+                    error: true,
+                    message: `User not found for slug: ${item.userSlug}`,
+                    cartId: item.id
+                };
+            }
+
+            // ---- Find Product ----
+            const product = checkProduct.find(p => p.slug === item.productSlug);
+
+            if (!product) {
+                return {
+                    error: true,
+                    message: `Product not found for slug: ${item.productSlug}`,
+                    cartId: item.id
+                };
+            }
+
+            // ---- Calculate totals ----
+            const cartItemtotalPrice =
+                parseInt(product.productPrice) * parseInt(item.cartCount);
+
+            const cartItemtotalSellPrice =
+                parseInt(product.productSpecialPrice) * parseInt(item.cartCount);
+
+            return {
+                id: item.id,
+                userSlug: user.slug,
+                userName: user.name,
+                userEmail: user.email,
+                userContact: user.contact,
+
+                productId: item.productId,
+                productSlug: item.productSlug,
+
+                cartName: product.name,
+                cartCount: item.cartCount,
+                cartImage: product.primaryImage,
+                cartPrice: product.productPrice,
+                cartSellPrice: product.productSpecialPrice,
+                cartItemtotalPrice,
+                cartItemtotalSellPrice,
+
+                createdAt: item.createdAt
+            };
+        });
+
+        return res.status(200).json({
+            status: 200,
+            message: "Cart data fetch successfully",
+            info: filterCartItem
+        });
+
     } catch (error) {
         return res.status(500).json({
             status: 500,
             error: true,
             message: error.message || error
-        })
+        });
     }
-}
+};
+
 
 const getCart = async (req, res, next) => {
     try {

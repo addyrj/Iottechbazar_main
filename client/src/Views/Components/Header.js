@@ -197,89 +197,96 @@ const Header = () => {
                             </div>
                             {/* End .header-search */}
                         </div>
-                        <div className="header-right">
-                            {/* End .compare-dropdown */}
-                            <div className="wishlist">
-                                <NavLink to="/wishlist" title="Wishlist">
-                                    <div className="icon">
-                                        <i className="icon-heart-o" />
-                                        <span className="wishlist-count badge">{userWishList.length !== 0 ? userWishList.length : 0}</span>
-                                    </div>
-                                    <p>Wishlist</p>
+                      <div className="header-right">
+
+    {/* --- PROFILE (FIRST) --- */}
+    <div className="wishlist">
+        <NavLink to={loginState ? "/profile" : "/register"} title="Profile">
+            <div className="icon">
+                <i className="icon-user" />  
+            </div>
+            <p>{loginState ? "Profile" : "Login"}</p>
+        </NavLink>
+    </div>
+
+    {/* --- WISHLIST (SECOND) --- */}
+    <div className="wishlist">
+        <NavLink to="/wishlist" title="Wishlist">
+            <div className="icon">
+                <i className="icon-heart-o" />
+                <span className="wishlist-count badge">
+                    {userWishList.length !== 0 ? userWishList.length : 0}
+                </span>
+            </div>
+            <p>Wishlist</p>
+        </NavLink>
+    </div>
+
+    {/* --- CART (THIRD) --- */}
+    <div className="dropdown cart-dropdown">
+        <a
+            href="#"
+            className="dropdown-toggle"
+            role="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-display="static"
+        >
+            <div className="icon">
+                <i className="icon-shopping-cart" />
+                <span className="cart-count">
+                    {userCart.length !== 0 ? userCart.length : 0}
+                </span>
+            </div>
+            <p>Cart</p>
+        </a>
+        <div className="dropdown-menu dropdown-menu-right">
+            <div className="dropdown-cart-products">
+                {userCart?.slice(0, 5).map((item, index) => (
+                    <div className="product" key={index}>
+                        <div className="product-cart-details">
+                            <h4 className="product-title">
+                                <NavLink to="/">
+                                    {item.cartName}
                                 </NavLink>
-                            </div>
-                            {/* End .compare-dropdown */}
-                            <div className="dropdown cart-dropdown">
-                                <a
-                                    href="#"
-                                    className="dropdown-toggle"
-                                    role="button"
-                                    data-toggle="dropdown"
-                                    aria-haspopup="true"
-                                    aria-expanded="false"
-                                    data-display="static"
-                                >
-                                    <div className="icon">
-                                        <i className="icon-shopping-cart" />
-                                        <span className="cart-count">{userCart.length !== 0 ? userCart.length : 0}</span>
-                                    </div>
-                                    <p>Cart</p>
-                                </a>
-                                <div className="dropdown-menu dropdown-menu-right">
-                                    <div className="dropdown-cart-products">
-                                        {userCart?.slice(0, 5).map((item, index) => {
-                                            return (
-                                                <div className="product">
-                                                    <div className="product-cart-details">
-                                                        <h4 className="product-title">
-                                                            <NavLink to="/" >
-                                                                {item.cartName}
-                                                            </NavLink>
-                                                        </h4>
-                                                        <span className="cart-product-info">
-                                                            <span className="cart-product-qty">{item.cartCount}</span>x ₹{item.cartSellPrice}
-                                                        </span>
-                                                    </div>
-                                                    {/* End .product-cart-details */}
-                                                    <figure className="product-image-container">
-                                                        <NavLink to="/" className="product-image">
-                                                            <img
-                                                                src={process.env.REACT_APP_IMAGE_URL + item.cartImage}
-                                                                alt={item.cartName}
-                                                            />
-                                                        </NavLink>
-                                                    </figure>
-                                                    <a href="#" className="btn-remove" title="Remove Product">
-                                                        <i className="icon-close" />
-                                                    </a>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                    {/* End .cart-product */}
-                                    <div className="dropdown-cart-total">
-                                        <span>Total</span>
-                                        <span className="cart-total-price">₹{totoalSellPrice()}</span>
-                                    </div>
-                                    {/* End .dropdown-cart-total */}
-                                    <div className="dropdown-cart-action">
-                                        <NavLink to="/cart" className="btn btn-primary">
-                                            View Cart
-                                        </NavLink>
-                                       <NavLink
-                      to="/checkout"
-                      className="btn btn-outline-primary-2"
-                    >
-                      <span>Checkout</span>
-                      <i className="icon-long-arrow-right" />
-                    </NavLink>
-                                    </div>
-                                    {/* End .dropdown-cart-total */}
-                                </div>
-                                {/* End .dropdown-menu */}
-                            </div>
-                            {/* End .cart-dropdown */}
+                            </h4>
+                            <span className="cart-product-info">
+                                <span className="cart-product-qty">{item.cartCount}</span>
+                                x ₹{item.cartSellPrice}
+                            </span>
                         </div>
+                        <figure className="product-image-container">
+                            <NavLink to="/" className="product-image">
+                                <img
+                                    src={process.env.REACT_APP_IMAGE_URL + item.cartImage}
+                                    alt={item.cartName}
+                                />
+                            </NavLink>
+                        </figure>
+                        <a href="#" className="btn-remove" title="Remove Product">
+                            <i className="icon-close" />
+                        </a>
+                    </div>
+                ))}
+            </div>
+
+            <div className="dropdown-cart-total">
+                <span>Total</span>
+                <span className="cart-total-price">₹{totoalSellPrice()}</span>
+            </div>
+
+            <div className="dropdown-cart-action">
+                <NavLink to="/cart" className="btn btn-primary">View Cart</NavLink>
+                <NavLink to="/checkout" className="btn btn-outline-primary-2">
+                    <span>Checkout</span>
+                    <i className="icon-long-arrow-right" />
+                </NavLink>
+            </div>
+        </div>
+    </div>
+</div>
+
                         {/* End .header-right */}
                     </div>
                     {/* End .container */}
@@ -441,9 +448,7 @@ const Header = () => {
 
 const Wrapper = styled.section`
   @media (max-width: ${({ theme }) => theme.media.mobile}) {
-    .header-right{
-        display: none;
-    }
+ 
   }`;
 
 export default Header
