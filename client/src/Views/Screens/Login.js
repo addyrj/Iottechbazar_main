@@ -64,7 +64,7 @@ const Login = () => {
 
     // Start OTP Timer
     const startOtpTimer = () => {
-        setOtpTimer(600); // 10 minutes in seconds
+        setOtpTimer(40); // 10 minutes in seconds
         setCanResendOtp(false);
     };
 
@@ -82,8 +82,9 @@ const Login = () => {
         } else if (isEmpty(registerInfo.Name)) {
             toast.error("Failed! Please enter name");
             return;
-        } else if (isEmpty(registerInfo.Email)) {
-            toast.error("Failed! Please enter email");
+        }
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerInfo.Email)) {
+            toast.error("Failed! Please enter a valid email address");
             return;
         } else if (isEmpty(registerInfo.Contact)) {
             toast.error("Failed! Please enter contact");
@@ -771,239 +772,246 @@ const Login = () => {
                                     )}
 
                                     {/* Regular Email Login */}
-                                    {!phoneLoginState && !forgotPasswordState && signInState === 1 && (
-                                        <div className="tab-pane fade show active" id="signin-2" role="tabpanel" aria-labelledby="signin-tab-2">
-                                            <form>
-                                                <div className="form-group">
-                                                    <label htmlFor="singin-email-2">
-                                                        Username or email address *
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        className="form-control"
-                                                        id="userId"
-                                                        name="userId"
-                                                        value={loginInfo.userId}
-                                                        required=""
-                                                        onChange={handleLogin}
-                                                        autoComplete="email"
-                                                    />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="singin-password-2">Password *</label>
-                                                    <input
-                                                        type="password"
-                                                        className="form-control"
-                                                        id="userPass"
-                                                        name="userPass"
-                                                        value={loginInfo.userPass}
-                                                        required=""
-                                                        onChange={handleLogin}
-                                                        autoComplete="current-password"
-                                                    />
-                                                </div>
-                                                <div className="form-footer">
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-primary-2"
-                                                        onClick={() => loginUser()}
-                                                    >
-                                                        <span>LOG IN</span>
-                                                        <i className="icon-long-arrow-right" />
-                                                    </button>
-                                                    <div className="custom-control custom-checkbox">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="custom-control-input"
-                                                            id="signin-remember-2"
-                                                            onClick={() => loginInfo.rememberMe ? setLoginIfo({ ...loginInfo, rememberMe: false })
-                                                                : setLoginIfo({ ...loginInfo, rememberMe: true })}
-                                                        />
-                                                        <label
-                                                            className="custom-control-label"
-                                                            htmlFor="signin-remember-2"
-                                                        >
-                                                            Remember Me
-                                                        </label>
-                                                    </div>
-                                                    <a
-                                                        href="#"
-                                                        className="forgot-link"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setForgotPasswordState(true);
-                                                        }}
-                                                    >
-                                                        Forgot Your Password?
-                                                    </a>
-                                                </div>
-                                            </form>
-                                            <div className="form-choice">
-                                                <p className="text-center">or sign in with</p>
+                                 {/* Regular Email Login */}
+{!phoneLoginState && !forgotPasswordState && signInState === 1 && (
+    <div className="tab-pane fade show active" id="signin-2" role="tabpanel" aria-labelledby="signin-tab-2">
+        <form onSubmit={(e) => {
+            e.preventDefault();
+            loginUser();
+        }}>
+            <div className="form-group">
+                <label htmlFor="singin-email-2">
+                    Username or email address *
+                </label>
+                <input
+                    type="email"
+                    className="form-control"
+                    id="userId"
+                    name="userId"
+                    value={loginInfo.userId}
+                    required=""
+                    onChange={handleLogin}
+                    autoComplete="email"
+                />
+            </div>
+            <div className="form-group">
+                <label htmlFor="singin-password-2">Password *</label>
+                <input
+                    type="password"
+                    className="form-control"
+                    id="userPass"
+                    name="userPass"
+                    value={loginInfo.userPass}
+                    required=""
+                    onChange={handleLogin}
+                    autoComplete="current-password"
+                />
+            </div>
+            <div className="form-footer">
+                <button
+                    type="submit"  // Changed from "button" to "submit"
+                    className="btn btn-outline-primary-2"
+                >
+                    <span>LOG IN</span>
+                    <i className="icon-long-arrow-right" />
+                </button>
+                <div className="custom-control custom-checkbox">
+                    <input
+                        type="checkbox"
+                        className="custom-control-input"
+                        id="signin-remember-2"
+                        onClick={() => loginInfo.rememberMe ? setLoginIfo({ ...loginInfo, rememberMe: false })
+                            : setLoginIfo({ ...loginInfo, rememberMe: true })}
+                    />
+                    <label
+                        className="custom-control-label"
+                        htmlFor="signin-remember-2"
+                    >
+                        Remember Me
+                    </label>
+                </div>
+                <a
+                    href="#"
+                    className="forgot-link"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        setForgotPasswordState(true);
+                    }}
+                >
+                    Forgot Your Password?
+                </a>
+            </div>
+        </form>
+        <div className="form-choice">
+            <p className="text-center">or sign in with</p>
 
-                                                {/* Phone Login on Top */}
-                                                <div className="col-sm-6 ml-auto mr-auto mt-2 cursor-pointer text-center">
-                                                    <a
-                                                        className="btn btn-login btn-f"
-                                                        onClick={() => setPhoneLoginState(true)}
-                                                    >
-                                                        <i className="fa-solid fa-phone text-success"></i>
-                                                        Login With Phone
-                                                    </a>
-                                                </div>
+            {/* Phone Login on Top */}
+            <div className="col-sm-6 ml-auto mr-auto mt-2 cursor-pointer text-center">
+                <a
+                    className="btn btn-login btn-f"
+                    onClick={() => setPhoneLoginState(true)}
+                >
+                    <i className="fa-solid fa-phone text-success"></i>
+                    Login With Phone
+                </a>
+            </div>
 
-                                                {/* Facebook and Google Below */}
-                                                <div className="row mt-3">
-                                                    <div className="col-sm-6">
-                                                        <a href="#" className="btn btn-login btn-f">
-                                                            <i className="icon-facebook-f" />
-                                                            Login With Facebook
-                                                        </a>
-                                                    </div>
-                                                    <div className="col-sm-6">
-                                                        <a href="#" className="btn btn-login btn-g">
-                                                            <i className="icon-google" />
-                                                            Login With Google
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                        </div>
-                                    )}
+            {/* Facebook and Google Below */}
+            <div className="row mt-3">
+                <div className="col-sm-6">
+                    <a href="#" className="btn btn-login btn-f">
+                        <i className="icon-facebook-f" />
+                        Login With Facebook
+                    </a>
+                </div>
+                <div className="col-sm-6">
+                    <a href="#" className="btn btn-login btn-g">
+                        <i className="icon-google" />
+                        Login With Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
 
                                     {/* Registration Form */}
-                                    {!phoneLoginState && !forgotPasswordState && signInState === 0 && (
-                                        <div className="tab-pane fade show active" id="register-2" role="tabpanel" aria-labelledby="register-tab-2">
-                                            <form>
-                                                <div className="form-group">
-                                                    <Stack onClick={() => uploadImage()}
-                                                        sx={{
-                                                            marginLeft: "auto",
-                                                            marginRight: "auto",
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                        }}
-                                                    >
-                                                        <Avatar
-                                                            sx={{
-                                                                bgcolor: indigo[400],
-                                                                width: "70px",
-                                                                height: "70px",
-                                                                color: "white",
-                                                                fontSize: "24px",
-                                                                fontWeight: "bold",
-                                                            }}
-                                                            src={jQuery.isEmptyObject(registerInfo.avatar) ? "" : URL.createObjectURL(registerInfo.avatar)}
-                                                        />
-                                                    </Stack>
-                                                    <input id="imageUpload" type="file" name="profile_photo" placeholder="Photo" required="" capture className="d-none"
-                                                        onChange={(e) => setRegisterInfo({ ...registerInfo, avatar: e.target.files[0] })} />
-                                                </div>
+                                {/* Registration Form */}
+{!phoneLoginState && !forgotPasswordState && signInState === 0 && (
+    <div className="tab-pane fade show active" id="register-2" role="tabpanel" aria-labelledby="register-tab-2">
+        <form onSubmit={(e) => {
+            e.preventDefault();
+            registerUser();
+        }}>
+            <div className="form-group">
+                <Stack onClick={() => uploadImage()}
+                    sx={{
+                        marginLeft: "auto",
+                        marginRight: "auto",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <Avatar
+                        sx={{
+                            bgcolor: indigo[400],
+                            width: "70px",
+                            height: "70px",
+                            color: "white",
+                            fontSize: "24px",
+                            fontWeight: "bold",
+                        }}
+                        src={jQuery.isEmptyObject(registerInfo.avatar) ? "" : URL.createObjectURL(registerInfo.avatar)}
+                    />
+                </Stack>
+                <input id="imageUpload" type="file" name="profile_photo" placeholder="Photo" required="" capture className="d-none"
+                    onChange={(e) => setRegisterInfo({ ...registerInfo, avatar: e.target.files[0] })} />
+            </div>
 
-                                                <div className="form-group">
-                                                    <label htmlFor="register-email-2">Your name *</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control"
-                                                        id="Name"
-                                                        name="Name"
-                                                        value={registerInfo.Name}
-                                                        onChange={handleChange}
-                                                        required=""
-                                                        autoComplete="name"
-                                                    />
-                                                </div>
+            <div className="form-group">
+                <label htmlFor="register-email-2">Your name *</label>
+                <input
+                    type="text"
+                    className="form-control"
+                    id="Name"
+                    name="Name"
+                    value={registerInfo.Name}
+                    onChange={handleChange}
+                    required=""
+                    autoComplete="name"
+                />
+            </div>
 
-                                                <div className="form-group">
-                                                    <label htmlFor="register-email-2">
-                                                        Your email address *
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        className="form-control"
-                                                        id="Email"
-                                                        name="Email"
-                                                        required=""
-                                                        value={registerInfo.Email}
-                                                        onChange={handleChange}
-                                                        autoComplete="email"
-                                                    />
-                                                </div>
+            <div className="form-group">
+                <label htmlFor="register-email-2">Your email address *</label>
+                <input
+                    type="email"
+                    className="form-control"
+                    id="Email"
+                    name="Email"
+                    value={registerInfo.Email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    required
+                    placeholder="Enter your email"
+                    pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                    onInvalid={(e) => e.target.setCustomValidity("Please enter a valid email address")}
+                    onInput={(e) => e.target.setCustomValidity("")}
+                />
+            </div>
 
-                                                <div className="form-group">
-                                                    <label htmlFor="register-email-2">Your contact *</label>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        id="Contact"
-                                                        name="Contact"
-                                                        required=""
-                                                        value={registerInfo.Contact}
-                                                        onChange={handleChange}
-                                                        autoComplete="tel"
-                                                    />
-                                                </div>
+            <div className="form-group">
+                <label htmlFor="register-email-2">Your contact *</label>
+                <input
+                    type="number"
+                    className="form-control"
+                    id="Contact"
+                    name="Contact"
+                    required=""
+                    value={registerInfo.Contact}
+                    onChange={handleChange}
+                    autoComplete="tel"
+                />
+            </div>
 
-                                                <div className="form-group">
-                                                    <label htmlFor="register-password-2">Password *</label>
-                                                    <input
-                                                        type="password"
-                                                        className="form-control"
-                                                        id="Password"
-                                                        name="Password"
-                                                        required=""
-                                                        value={registerInfo.Password}
-                                                        onChange={handleChange}
-                                                        autoComplete="new-password"
-                                                    />
-                                                </div>
+            <div className="form-group">
+                <label htmlFor="register-password-2">Password *</label>
+                <input
+                    type="password"
+                    className="form-control"
+                    id="Password"
+                    name="Password"
+                    required=""
+                    value={registerInfo.Password}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                />
+            </div>
 
-                                                <div className="form-group">
-                                                    <label htmlFor="register-password-2">
-                                                        Confirm password *
-                                                    </label>
-                                                    <input
-                                                        type="password"
-                                                        className="form-control"
-                                                        id="ConfirmPassword"
-                                                        name="ConfirmPassword"
-                                                        required=""
-                                                        value={registerInfo.ConfirmPassword}
-                                                        onChange={handleChange}
-                                                        autoComplete="new-password"
-                                                    />
-                                                </div>
-                                                <div className="form-footer">
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-primary-2"
-                                                        onClick={() => registerUser()}
-                                                    >
-                                                        <span>SIGN UP</span>
-                                                        <i className="icon-long-arrow-right" />
-                                                    </button>
-                                                    <div className="custom-control custom-checkbox">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="custom-control-input"
-                                                            id="register-policy-2"
-                                                            required=""
-                                                            onClick={(e) => privacyChecked ?
-                                                                setPrivacyChecked(false) : setPrivacyChecked(true)}
-                                                        />
-                                                        <label
-                                                            className="custom-control-label"
-                                                            htmlFor="register-policy-2"
-                                                        >
-                                                            I agree to the <a href="#">privacy policy</a> *
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    )}
+            <div className="form-group">
+                <label htmlFor="register-password-2">
+                    Confirm password *
+                </label>
+                <input
+                    type="password"
+                    className="form-control"
+                    id="ConfirmPassword"
+                    name="ConfirmPassword"
+                    required=""
+                    value={registerInfo.ConfirmPassword}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                />
+            </div>
+            <div className="form-footer">
+                <button
+                    type="submit"  // Changed from "button" to "submit"
+                    className="btn btn-outline-primary-2"
+                >
+                    <span>SIGN UP</span>
+                    <i className="icon-long-arrow-right" />
+                </button>
+                <div className="custom-control custom-checkbox">
+                    <input
+                        type="checkbox"
+                        className="custom-control-input"
+                        id="register-policy-2"
+                        required=""
+                        onClick={(e) => privacyChecked ?
+                            setPrivacyChecked(false) : setPrivacyChecked(true)}
+                    />
+                    <label
+                        className="custom-control-label"
+                        htmlFor="register-policy-2"
+                    >
+                        I agree to the <a href="#">privacy policy</a> *
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+)}
                                 </div>
                             </div>
                         </div>

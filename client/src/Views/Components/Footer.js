@@ -155,19 +155,47 @@ const Footer = () => {
                                         height={25}
                                     /> */}
 
-                                    <h4 className="widget-title text-white">Contact Us</h4>
-                                    {/* End .widget-title */}
-                                    <ul className="widget-list">
-                                        <li>
-                                            <i className='fa fa-location-dot' /><a className='ml-4' href="#">{appInfo?.app_name}</a>
-                                        </li>
-                                        <li>
-                                            <i class="fa fa-envelope" /><a className='ml-4' href="#">{appInfo?.app_email}</a>
-                                        </li>
-                                        <li>
-                                            <i className='fa fa-phone' /><a className='ml-2' href="#"> +91-{appInfo?.app_contact}</a>
-                                        </li>
-                                    </ul>
+                                 <h4 className="widget-title text-white">Contact Us</h4>
+{/* End .widget-title */}
+<ul className="widget-list">
+    <li>
+        <i className='fa fa-location-dot' />
+        <NavLink 
+            to="/contact" 
+            className='ml-4'
+            onClick={() => {
+                setTimeout(() => {
+                    const scrollHeight = document.documentElement.scrollHeight;
+                    const centerPosition = (scrollHeight - window.innerHeight) / 7;
+                    window.scrollTo({
+                        top: centerPosition > 0 ? centerPosition : 0,
+                        behavior: "smooth",
+                    });
+                }, 300);
+            }}
+        >
+            {appInfo?.app_name}
+        </NavLink>
+    </li>
+    <li>
+        <i className="fa fa-envelope" />
+        <a 
+            className='ml-4' 
+            href={`mailto:${appInfo?.app_email}`}
+        >
+            {appInfo?.app_email}
+        </a>
+    </li>
+    <li>
+        <i className='fa fa-phone' />
+        <a 
+            className='ml-2' 
+            href={`tel:+91${appInfo?.app_contact}`}
+        >
+            +91-{appInfo?.app_contact}
+        </a>
+    </li>
+</ul>
                                     {/* End .widget-list */}
                                     <div className="social-icons mt-2">
                                         {appSocialLink.map((item, index) => (
@@ -194,11 +222,11 @@ const Footer = () => {
                                     <h4 className="widget-title">Useful Links</h4>
                                     {/* End .widget-title */}
                                     <ul>
-                                       {legalPageList?.map((item, index) => (
-    <li key={item.id || index}>
-        <NavLink to={`/legalpage/${item.url}`}>{item.title}</NavLink>
-    </li>
-))}
+                                        {legalPageList?.map((item, index) => (
+                                            <li key={item.id || index}>
+                                                <NavLink to={`/legalpage/${item.url}`}>{item.title}</NavLink>
+                                            </li>
+                                        ))}
 
                                     </ul>
                                     {/* End .widget-list */}
@@ -296,7 +324,9 @@ const Footer = () => {
                                                 }}>My Wishlist</NavLink>
                                         </li>
                                         <li>
-                                            <NavLink to="/profile"
+                                            <NavLink
+                                                to="/profile"
+                                                state={{ referPage: 2 }}  // Pass state to indicate Orders tab
                                                 onClick={() => {
                                                     // Wait for the navigation to complete
                                                     setTimeout(() => {
@@ -307,8 +337,11 @@ const Footer = () => {
                                                             top: centerPosition > 0 ? centerPosition : 0,
                                                             behavior: "smooth",
                                                         });
-                                                    }, 300); // small delay ensures route change + DOM update
-                                                }}>Track My Order</NavLink>
+                                                    }, 300);
+                                                }}
+                                            >
+                                                Track My Order
+                                            </NavLink>
                                         </li>
                                         <li>
                                             <NavLink to="/contact"

@@ -19,7 +19,8 @@ const Profile = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { referPage } = location.state || {}
-    const [profileState, setProfileState] = useState(referPage !== undefined ? 3 : 1);
+    // const [profileState, setProfileState] = useState(referPage !== undefined ? 3 : 1);
+      const [profileState, setProfileState] = useState(referPage !== undefined ? 2 : 1);
     const addressList = useSelector((state) => state.DashboardReducer.userAddress);
     const userProfile = useSelector((state) => state.DashboardReducer.userProfile);
 
@@ -392,7 +393,7 @@ const handleEditAddress = (address) => {
                                                     </div>
                                                     <h4>No orders yet</h4>
                                                     <p>You haven't placed any orders yet.</p>
-                                                    <NavLink to="/shop" className="btn btn-primary">
+                                                    <NavLink to="/products" className="btn btn-primary">
                                                         <span>START SHOPPING</span>
                                                         <i className="icon-long-arrow-right" />
                                                     </NavLink>

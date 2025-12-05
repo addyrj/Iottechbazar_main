@@ -106,42 +106,48 @@ const Home = () => {
                         modules={[Autoplay, Pagination, Navigation]}
                         className="owl-carousel owl-simple owl-light owl-nav-inside"
                     >
-                        {homeSlider?.map((item, index) => {
-                            return (
-                                <SwiperSlide>
-                                    <NavLink to={"/productDetail"} state={{
-                                        primaryImage: item?.productData[0]?.primaryImage,
-                                        name: item?.productData[0]?.name,
-                                        rating: item?.productData[0]?.rating,
-                                        review: item?.productData[0]?.review,
-                                        subScript: item?.productData[0]?.subScript,
-                                        model: item?.productData[0]?.model,
-                                        productSku: item?.productData[0]?.productSku,
-                                        stock: item?.productData[0]?.stock,
-                                        subCategoryName: item?.productData[0]?.subCategoryName,
-                                        productSpecialPrice: item?.productData[0]?.productSpecialPrice,
-                                        categoryName: item?.productData[0]?.categoryName,
-                                        proSection: item?.productData[0]?.proSection,
-                                        secondaryImage: JSON.parse(item?.productData[0]?.secondaryImage),
-                                        description: item?.productData[0]?.secondaryImage,
-                                        offer: item?.productData[0]?.secondaryImage,
-                                        specification: item?.productData[0]?.secondaryImage,
-                                        manufacturer: item?.productData[0]?.secondaryImage,
-                                        warranty: item?.productData[0]?.secondaryImage,
-                                        id: item?.productData[0]?.secondaryImage,
-                                        slug: item?.productData[0]?.secondaryImage,
-                                    }}>
-                                        <div
-                                            key={index}
-                                            className="intro-slide homeSlider"
-                                            style={{
-                                                backgroundImage: `url(${process.env.REACT_APP_IMAGE_URL + item.avatar})`,
-                                            }}
-                                        />
-                                    </NavLink>
-                                </SwiperSlide>
-                            );
-                        })}
+                       {homeSlider?.map((item, index) => {
+  const product = item?.productData?.[0];
+  if (!product) return null;
+  
+  return (
+    <SwiperSlide key={item._id || index}>
+      <NavLink 
+        to={`/productDetail/${product.id || product._id}`}
+        state={{
+          primaryImage: product.primaryImage,
+          name: product.name,
+          rating: product.rating,
+          review: product.review,
+          subScript: product.subScript,
+          model: product.model,
+          productSku: product.productSku,
+          stock: product.stock,
+          subCategoryName: product.subCategoryName,
+          productSpecialPrice: product.productSpecialPrice,
+          categoryName: product.categoryName,
+          proSection: product.proSection,
+          secondaryImage: product.secondaryImage ? 
+            JSON.parse(product.secondaryImage) : [],
+          description: product.description,
+          offer: product.offer,
+          specification: product.specification,
+          manufacturer: product.manufacturer,
+          warranty: product.warranty,
+          id: product.id || product._id,
+          slug: product.slug,
+        }}
+      >
+        <div
+          className="intro-slide homeSlider"
+          style={{
+            backgroundImage: `url(${process.env.REACT_APP_IMAGE_URL + item.avatar})`,
+          }}
+        />
+      </NavLink>
+    </SwiperSlide>
+  );
+})}
                     </Swiper>
                 </div>
                 {/* End .intro-slider-container */}

@@ -217,7 +217,7 @@ const sendLoginOtp = async (req, res) => {
 
             // Generate 6 digit OTP
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+            const expiresAt = new Date(Date.now() + 1 * 40 * 1000); // OTP expires in 1 minutes
 
             console.log(`Generated OTP ${otp} for contact ${Contact}, expires at: ${expiresAt}`);
 
@@ -418,7 +418,7 @@ const sendForgotPasswordOtp = async (req, res) => {
 
             // Generate 6 digit OTP
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+            const expiresAt = new Date(Date.now() + 1 * 40 * 1000); // OTP expires in 1 minutes
 
             console.log(`Generated forgot password OTP ${otp} for contact ${Contact}`);
 
